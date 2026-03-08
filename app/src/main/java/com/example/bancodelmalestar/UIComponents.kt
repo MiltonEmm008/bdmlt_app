@@ -2,6 +2,7 @@ package com.example.bancodelmalestar
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -9,16 +10,19 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import java.util.Locale
 
 object AppColors {
@@ -86,7 +90,8 @@ fun BottomNavigationBar(
                 Triple("home", Icons.Default.Home, "Inicio"),
                 Triple("transfers", Icons.AutoMirrored.Filled.Send, "Transf."),
                 Triple("services", Icons.Default.Receipt, "Servicios"),
-                Triple("branches", Icons.Default.LocationOn, "Sucursales")
+                Triple("profile", Icons.Default.Person, "Perfil"),
+                Triple("branches", Icons.Default.LocationOn, "Sucurs.")
             )
         }
 
@@ -124,7 +129,9 @@ fun CardAccount(
     amount: Double,
     isCredit: Boolean = false,
     limit: Double = 0.0,
-    onPayCredit: (() -> Unit)? = null
+    onPayCredit: (() -> Unit)? = null,
+    spendingLimit: SpendingLimit? = null,
+    onSetLimit: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -135,11 +142,20 @@ fun CardAccount(
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                color = if (isCredit) AppColors.Red else AppColors.Green
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (isCredit) AppColors.Red else AppColors.Green
+                )
+                IconButton(onClick = onSetLimit, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Default.Settings, contentDescription = "Configurar Límite", tint = AppColors.Gray)
+                }
+            }
             Text(
                 "No. $number",
                 style = MaterialTheme.typography.bodySmall,
@@ -154,12 +170,40 @@ fun CardAccount(
                 fontWeight = FontWeight.Bold,
                 color = AppColors.Black
             )
+
+            if (spendingLimit != null && spendingLimit.limiteGastoMensual > 0) {
+                Spacer(modifier = Modifier.height(8.dp))
+                val progress = (spendingLimit.gastoMesActual / spendingLimit.limiteGastoMensual).toFloat()
+                LinearProgressIndicator(
+                    progress = { progress.coerceIn(0f, 1f) },
+                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                    color = if (progress > 0.9f) AppColors.Red else AppColors.Green,
+                    trackColor = AppColors.LightGray
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Gastado: $${String.format(Locale.US, "%.2f", spendingLimit.gastoMesActual)}",
+                        fontSize = 10.sp,
+                        color = AppColors.Gray
+                    )
+                    Text(
+                        "Límite: $${String.format(Locale.US, "%.2f", spendingLimit.limiteGastoMensual)}",
+                        fontSize = 10.sp,
+                        color = AppColors.Gray
+                    )
+                }
+            }
+
             if (isCredit) {
-                val limitText = remember(limit) { String.format(Locale.US, "Límite: $%.2f", limit) }
+                val limitText = remember(limit) { String.format(Locale.US, "Límite Crédito: $%.2f", limit) }
                 Text(
                     limitText,
                     style = MaterialTheme.typography.bodySmall,
-                    color = AppColors.Gray
+                    color = AppColors.Gray,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
                 if (amount > 0) {
                     Button(
@@ -173,4 +217,73 @@ fun CardAccount(
             }
         }
     }
+}
+
+@Composable
+fun MovementItem(movement: Movement) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = AppColors.White),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    movement.descripcion,
+                    color = AppColors.Black,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 14.sp
+                )
+                Text(
+                    movement.creadaEn.split("T")[0],
+                    color = AppColors.Gray,
+                    fontSize = 12.sp
+                )
+                Text(
+                    movement.tipo.replace("_", " ").replaceFirstChar { it.uppercase() },
+                    color = AppColors.Gray,
+                    fontSize = 10.sp
+                )
+            }
+            val color = when (movement.tipo) {
+                "deposito" -> AppColors.Green
+                else -> AppColors.Red
+            }
+            val prefix = if (movement.tipo == "deposito") "+" else "-"
+            Text(
+                "$prefix$${String.format(Locale.US, "%.2f", movement.monto)}",
+                color = color,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun UserProfileImage(photoUrl: String?, baseUrl: String, size: Int = 100) {
+    val fullUrl = if (photoUrl != null) "$baseUrl$photoUrl" else null
+    
+    AsyncImage(
+        model = ImageRequest.Builder(LocalContext.current)
+            .data(fullUrl)
+            .crossfade(true)
+            .build(),
+        placeholder = painterResource(R.drawable.foto_usuario),
+        error = painterResource(R.drawable.foto_usuario),
+        contentDescription = "Foto de perfil",
+        modifier = Modifier
+            .size(size.dp)
+            .clip(CircleShape),
+        contentScale = ContentScale.Crop
+    )
 }
