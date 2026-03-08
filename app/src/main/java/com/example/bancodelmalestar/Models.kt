@@ -57,3 +57,17 @@ data class ServicePaymentRequest(
 data class CreditPaymentRequest(
     val monto: Double
 )
+
+data class MyQrResponse(
+    @SerializedName("numero_cuenta") val numeroCuenta: String,
+    val nombre: String,
+    val fecha: String
+)
+
+data class QrTransferData(
+    val numero_cuenta: String,
+    val nombre: String,
+    val monto: Double,
+    val concepto: String,
+    val fecha: String
+)
