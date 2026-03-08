@@ -5,12 +5,16 @@ import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
@@ -156,10 +161,25 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
     val debit = remember(viewModel.accounts) { viewModel.accounts.find { it.tipo == "debito" } }
     val credit = remember(viewModel.accounts) { viewModel.accounts.find { it.tipo == "credito" } }
+    val context = LocalContext.current
+
+    var showFilters by remember { mutableStateOf(false) }
+    var selectedType by remember { mutableStateOf<String?>(null) }
+    var selectedOrder by remember { mutableStateOf("desc") }
+    var limit by remember { mutableStateOf("20") }
+
+    val types = listOf(
+        "Todas" to null,
+        "Transferencia" to "transferencia",
+        "Servicio" to "pago_servicio",
+        "Crédito" to "pago_credito",
+        "Depósito" to "deposito"
+    )
 
     LazyColumn(
         modifier = Modifier
@@ -196,7 +216,137 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
         }
 
         item {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showFilters = !showFilters }
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.FilterList, contentDescription = null, tint = AppColors.Red)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Filtros de Movimientos",
+                        fontWeight = FontWeight.Bold,
+                        color = AppColors.Red
+                    )
+                }
+                Icon(
+                    if (showFilters) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = AppColors.Red
+                )
+            }
+            
+            AnimatedVisibility(visible = showFilters) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    colors = CardDefaults.cardColors(containerColor = AppColors.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Tipo de movimiento:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            types.forEach { (label, value) ->
+                                FilterChip(
+                                    selected = selectedType == value,
+                                    onClick = { 
+                                        selectedType = value
+                                        viewModel.fetchMovements(limit.toIntOrNull(), selectedOrder, selectedType)
+                                    },
+                                    label = { Text(label, fontSize = 10.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = AppColors.Red,
+                                        selectedLabelColor = Color.White
+                                    )
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Orden:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    RadioButton(
+                                        selected = selectedOrder == "desc",
+                                        onClick = { 
+                                            selectedOrder = "desc"
+                                            viewModel.fetchMovements(limit.toIntOrNull(), selectedOrder, selectedType)
+                                        },
+                                        colors = RadioButtonDefaults.colors(selectedColor = AppColors.Red)
+                                    )
+                                    Text("Recientes", fontSize = 12.sp)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    RadioButton(
+                                        selected = selectedOrder == "asc",
+                                        onClick = { 
+                                            selectedOrder = "asc"
+                                            viewModel.fetchMovements(limit.toIntOrNull(), selectedOrder, selectedType)
+                                        },
+                                        colors = RadioButtonDefaults.colors(selectedColor = AppColors.Red)
+                                    )
+                                    Text("Antiguos", fontSize = 12.sp)
+                                }
+                            }
+                            
+                            OutlinedTextField(
+                                value = limit,
+                                onValueChange = { 
+                                    limit = it
+                                    if (it.isNotEmpty()) {
+                                        viewModel.fetchMovements(it.toIntOrNull(), selectedOrder, selectedType)
+                                    }
+                                },
+                                label = { Text("Límite", fontSize = 10.sp) },
+                                modifier = Modifier.width(80.dp),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                colors = appTextFieldColors(),
+                                singleLine = true
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    viewModel.user?.let { u ->
+                                        ExportUtils.generateMovementsPdf(context, u, viewModel.accounts, viewModel.movements)
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = AppColors.Red)
+                            ) {
+                                Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Exportar PDF", fontSize = 12.sp)
+                            }
+                            Button(
+                                onClick = {
+                                    viewModel.user?.let { u ->
+                                        ExportUtils.generateMovementsCsv(context, u, viewModel.movements)
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = AppColors.Gray)
+                            ) {
+                                Icon(Icons.Default.TableChart, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Exportar CSV", fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
             Text(
                 "Movimientos Recientes", 
                 fontWeight = FontWeight.Bold,
@@ -206,23 +356,7 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
         }
 
         items(viewModel.movements, key = { it.id }) { movement ->
-            ListItem(
-                headlineContent = { 
-                    Text(movement.descripcion, color = AppColors.Black, fontWeight = FontWeight.Medium) 
-                },
-                supportingContent = { 
-                    Text(movement.creadaEn.split("T")[0], color = AppColors.Gray) 
-                },
-                trailingContent = {
-                    val color = when(movement.tipo) {
-                        "deposito" -> AppColors.Green
-                        else -> AppColors.Red
-                    }
-                    Text("$${movement.monto}", color = color, fontWeight = FontWeight.Bold)
-                },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-            )
-            HorizontalDivider(color = AppColors.HeaderBg)
+            MovementItem(movement = movement)
         }
     }
 }

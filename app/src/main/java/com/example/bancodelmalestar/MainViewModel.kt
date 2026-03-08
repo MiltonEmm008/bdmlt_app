@@ -94,7 +94,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val userDef = async { apiService.getMe(token) }
                 val accDef = async { apiService.getAccounts(token) }
-                val movDef = async { apiService.getMovements(token) }
+                val movDef = async { apiService.getMovements(token, limit = 20) }
                 val servDef = async { apiService.getAvailableServices() }
                 val qrDef = async { apiService.getMyQr(token) }
 
@@ -127,10 +127,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun fetchMovements() {
+    fun fetchMovements(limit: Int? = null, order: String? = null, type: String? = null) {
         viewModelScope.launch {
             try {
-                val response = apiService.getMovements(token)
+                val response = apiService.getMovements(token, limit, order, type)
                 if (response.isSuccessful) movements = response.body() ?: emptyList()
             } catch (e: Exception) { }
         }

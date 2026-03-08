@@ -9,7 +9,6 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -171,6 +170,56 @@ fun CardAccount(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun MovementItem(movement: Movement) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = AppColors.White),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    movement.descripcion,
+                    color = AppColors.Black,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 14.sp
+                )
+                Text(
+                    movement.creadaEn.split("T")[0],
+                    color = AppColors.Gray,
+                    fontSize = 12.sp
+                )
+                Text(
+                    movement.tipo.replace("_", " ").replaceFirstChar { it.uppercase() },
+                    color = AppColors.Gray,
+                    fontSize = 10.sp
+                )
+            }
+            val color = when (movement.tipo) {
+                "deposito" -> AppColors.Green
+                else -> AppColors.Red
+            }
+            val prefix = if (movement.tipo == "deposito") "+" else "-"
+            Text(
+                "$prefix$${String.format(Locale.US, "%.2f", movement.monto)}",
+                color = color,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
         }
     }
 }

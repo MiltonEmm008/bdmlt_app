@@ -19,7 +19,9 @@ interface ApiService {
     @GET("cuentas/movimientos")
     suspend fun getMovements(
         @Header("Authorization") token: String,
-        @Query("limite") limit: Int = 20
+        @Query("limite") limit: Int? = null,
+        @Query("orden_fecha") order: String? = null,
+        @Query("tipo") type: String? = null
     ): Response<List<Movement>>
 
     @GET("cuentas/mi-qr")
