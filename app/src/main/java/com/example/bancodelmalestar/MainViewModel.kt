@@ -1,9 +1,10 @@
 package com.example.bancodelmalestar
 
+import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
@@ -13,10 +14,12 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
-class MainViewModel : ViewModel() {
+class MainViewModel(application: Application) : AndroidViewModel(application) {
+    private val context = application.applicationContext
+
     private val apiService: ApiService by lazy {
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.NONE // Reducir logs para producción/velocidad
+            level = HttpLoggingInterceptor.Level.NONE
         }
         val client = OkHttpClient.Builder()
             .addInterceptor(logging)
@@ -37,6 +40,7 @@ class MainViewModel : ViewModel() {
     var accounts by mutableStateOf<List<Account>>(emptyList())
     var movements by mutableStateOf<List<Movement>>(emptyList())
     var servicesAvailable by mutableStateOf<List<ServiceAvailable>>(emptyList())
+    var myQrData by mutableStateOf<MyQrResponse?>(null)
     
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
@@ -70,6 +74,7 @@ class MainViewModel : ViewModel() {
                 val response = apiService.register(mapOf("nombre" to nombre, "email" to email, "password" to password))
                 if (response.isSuccessful) {
                     token = "Bearer ${response.body()?.accessToken}"
+                    NotificationHelper.showNotification(context, "Registro Exitoso", "Bienvenido a BDMLT, $nombre")
                     fetchInitialData()
                     onSuccess()
                 } else {
@@ -87,23 +92,23 @@ class MainViewModel : ViewModel() {
         viewModelScope.launch {
             isLoading = true
             try {
-                // Lanzar todas las peticiones en paralelo
                 val userDef = async { apiService.getMe(token) }
                 val accDef = async { apiService.getAccounts(token) }
                 val movDef = async { apiService.getMovements(token) }
                 val servDef = async { apiService.getAvailableServices() }
+                val qrDef = async { apiService.getMyQr(token) }
 
-                // Esperar resultados
                 val uRes = userDef.await()
                 val aRes = accDef.await()
                 val mRes = movDef.await()
                 val sRes = servDef.await()
+                val qRes = qrDef.await()
 
-                // Actualizar estados una sola vez (o de forma agrupada por Compose)
                 if (uRes.isSuccessful) user = uRes.body()
                 if (aRes.isSuccessful) accounts = aRes.body() ?: emptyList()
                 if (mRes.isSuccessful) movements = mRes.body() ?: emptyList()
                 if (sRes.isSuccessful) servicesAvailable = sRes.body() ?: emptyList()
+                if (qRes.isSuccessful) myQrData = qRes.body()
                 
             } catch (e: Exception) {
                 errorMessage = "Error al sincronizar datos"
@@ -131,20 +136,32 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    fun fetchMyQr() {
+        viewModelScope.launch {
+            try {
+                val response = apiService.getMyQr(token)
+                if (response.isSuccessful) myQrData = response.body()
+            } catch (e: Exception) { }
+        }
+    }
+
     fun transfer(dest: String, amount: Double, desc: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
             isLoading = true
             try {
                 val response = apiService.transfer(token, TransferRequest(dest, amount, desc))
                 if (response.isSuccessful) {
+                    NotificationHelper.showNotification(context, "Transferencia Exitosa", "Se han enviado $$amount a la cuenta $dest")
                     fetchAccounts()
                     fetchMovements()
                     onSuccess()
                 } else {
                     errorMessage = "Transferencia fallida"
+                    NotificationHelper.showNotification(context, "Transferencia Fallida", "No se pudo realizar el envío de $$amount")
                 }
             } catch (e: Exception) {
                 errorMessage = "Error de red"
+                NotificationHelper.showNotification(context, "Error de Red", "Fallo en la conexión durante la transferencia")
             } finally {
                 isLoading = false
             }
@@ -157,14 +174,17 @@ class MainViewModel : ViewModel() {
             try {
                 val response = apiService.payService(token, ServicePaymentRequest(service, ref, amount, usarCredito))
                 if (response.isSuccessful) {
+                    NotificationHelper.showNotification(context, "Pago de Servicio Exitoso", "Pago de $service por $$amount realizado")
                     fetchAccounts()
                     fetchMovements()
                     onSuccess()
                 } else {
                     errorMessage = "Pago fallido"
+                    NotificationHelper.showNotification(context, "Pago Fallido", "No se pudo procesar el pago de $service")
                 }
             } catch (e: Exception) {
                 errorMessage = "Error de red"
+                NotificationHelper.showNotification(context, "Error de Red", "Fallo en la conexión durante el pago")
             } finally {
                 isLoading = false
             }
@@ -177,6 +197,7 @@ class MainViewModel : ViewModel() {
             try {
                 val response = apiService.payCredit(token, CreditPaymentRequest(amount))
                 if (response.isSuccessful) {
+                    NotificationHelper.showNotification(context, "Abono Exitoso", "Has pagado $$amount a tu tarjeta de crédito")
                     fetchAccounts()
                     fetchMovements()
                     onSuccess()
@@ -196,5 +217,6 @@ class MainViewModel : ViewModel() {
         user = null
         accounts = emptyList()
         movements = emptyList()
+        myQrData = null
     }
 }

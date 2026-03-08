@@ -1,8 +1,12 @@
 package com.example.bancodelmalestar
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
@@ -23,6 +27,14 @@ import org.osmdroid.config.Configuration
 class MainActivity : FragmentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (!isGranted) {
+            Toast.makeText(this, "Las notificaciones están desactivadas", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Splash Screen
         installSplashScreen().apply {
@@ -34,6 +46,16 @@ class MainActivity : FragmentActivity() {
 
         super.onCreate(savedInstanceState)
         
+        // Initialize Notification Channel
+        NotificationHelper.createNotificationChannel(this)
+        
+        // Request Notification Permission for Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+
         // OSMDroid configuration
         Configuration.getInstance().userAgentValue = packageName
 

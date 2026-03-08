@@ -22,6 +22,9 @@ interface ApiService {
         @Query("limite") limit: Int = 20
     ): Response<List<Movement>>
 
+    @GET("cuentas/mi-qr")
+    suspend fun getMyQr(@Header("Authorization") token: String): Response<MyQrResponse>
+
     @POST("operaciones/transferencia")
     suspend fun transfer(
         @Header("Authorization") token: String,
