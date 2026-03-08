@@ -11,6 +11,7 @@ data class User(
     val id: Int,
     val nombre: String,
     val email: String,
+    @SerializedName("foto_perfil") val fotoPerfil: String?,
     @SerializedName("creado_en") val creadoEn: String
 )
 
@@ -70,4 +71,15 @@ data class QrTransferData(
     val monto: Double,
     val concepto: String,
     val fecha: String
+)
+
+data class SpendingLimit(
+    val tipo: String,
+    @SerializedName("limite_gasto_mensual") val limiteGastoMensual: Double,
+    @SerializedName("gasto_mes_actual") val gastoMesActual: Double
+)
+
+data class UpdateSpendingLimitRequest(
+    val limite: Double,
+    val tipo: String? = null
 )

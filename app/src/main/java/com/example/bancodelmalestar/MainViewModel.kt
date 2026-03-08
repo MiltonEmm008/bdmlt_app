@@ -8,14 +8,20 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.File
 import java.util.concurrent.TimeUnit
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val context = application.applicationContext
+    val BASE_URL = "http://192.168.100.25:3000/"
 
     private val apiService: ApiService by lazy {
         val logging = HttpLoggingInterceptor().apply {
@@ -28,7 +34,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             .build()
 
         Retrofit.Builder()
-            .baseUrl("http://192.168.100.25:3000/")
+            .baseUrl(BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .client(client)
             .build()
@@ -39,6 +45,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var user by mutableStateOf<User?>(null)
     var accounts by mutableStateOf<List<Account>>(emptyList())
     var movements by mutableStateOf<List<Movement>>(emptyList())
+    var spendingLimits by mutableStateOf<List<SpendingLimit>>(emptyList())
     var servicesAvailable by mutableStateOf<List<ServiceAvailable>>(emptyList())
     var myQrData by mutableStateOf<MyQrResponse?>(null)
     
@@ -95,23 +102,92 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val userDef = async { apiService.getMe(token) }
                 val accDef = async { apiService.getAccounts(token) }
                 val movDef = async { apiService.getMovements(token, limit = 20) }
+                val limDef = async { apiService.getSpendingLimits(token) }
                 val servDef = async { apiService.getAvailableServices() }
                 val qrDef = async { apiService.getMyQr(token) }
 
                 val uRes = userDef.await()
                 val aRes = accDef.await()
                 val mRes = movDef.await()
+                val lRes = limDef.await()
                 val sRes = servDef.await()
                 val qRes = qrDef.await()
 
                 if (uRes.isSuccessful) user = uRes.body()
                 if (aRes.isSuccessful) accounts = aRes.body() ?: emptyList()
                 if (mRes.isSuccessful) movements = mRes.body() ?: emptyList()
+                if (lRes.isSuccessful) spendingLimits = lRes.body() ?: emptyList()
                 if (sRes.isSuccessful) servicesAvailable = sRes.body() ?: emptyList()
                 if (qRes.isSuccessful) myQrData = qRes.body()
                 
             } catch (e: Exception) {
                 errorMessage = "Error al sincronizar datos"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    fun updateProfile(
+        nombre: String?,
+        passActual: String?,
+        passNueva: String?,
+        fotoFile: File?,
+        onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            try {
+                val namePart = nombre?.toRequestBody("text/plain".toMediaTypeOrNull())
+                val curPassPart = passActual?.toRequestBody("text/plain".toMediaTypeOrNull())
+                val newPassPart = passNueva?.toRequestBody("text/plain".toMediaTypeOrNull())
+                
+                var fotoPart: MultipartBody.Part? = null
+                fotoFile?.let {
+                    val requestFile = it.asRequestBody("image/*".toMediaTypeOrNull())
+                    fotoPart = MultipartBody.Part.createFormData("foto", it.name, requestFile)
+                }
+
+                val response = apiService.updateMe(token, namePart, curPassPart, newPassPart, fotoPart)
+                if (response.isSuccessful) {
+                    user = response.body()
+                    NotificationHelper.showNotification(context, "Perfil Actualizado", "Tus datos se han guardado correctamente")
+                    onSuccess()
+                } else {
+                    errorMessage = "Error al actualizar perfil: ${response.code()}"
+                }
+            } catch (e: Exception) {
+                errorMessage = "Error de red"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    fun fetchSpendingLimits() {
+        viewModelScope.launch {
+            try {
+                val response = apiService.getSpendingLimits(token)
+                if (response.isSuccessful) spendingLimits = response.body() ?: emptyList()
+            } catch (e: Exception) { }
+        }
+    }
+
+    fun updateSpendingLimit(limit: Double, type: String?, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                val response = apiService.updateSpendingLimit(token, UpdateSpendingLimitRequest(limit, type))
+                if (response.isSuccessful) {
+                    spendingLimits = response.body() ?: emptyList()
+                    NotificationHelper.showNotification(context, "Límite Actualizado", "Nuevo límite establecido correctamente")
+                    onSuccess()
+                } else {
+                    errorMessage = "Error al actualizar límite"
+                }
+            } catch (e: Exception) {
+                errorMessage = "Error de red"
             } finally {
                 isLoading = false
             }
@@ -154,9 +230,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     NotificationHelper.showNotification(context, "Transferencia Exitosa", "Se han enviado $$amount a la cuenta $dest")
                     fetchAccounts()
                     fetchMovements()
+                    fetchSpendingLimits()
                     onSuccess()
                 } else {
-                    errorMessage = "Transferencia fallida"
+                    errorMessage = "Transferencia fallida (Verifica tu límite de gasto)"
                     NotificationHelper.showNotification(context, "Transferencia Fallida", "No se pudo realizar el envío de $$amount")
                 }
             } catch (e: Exception) {
@@ -177,9 +254,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     NotificationHelper.showNotification(context, "Pago de Servicio Exitoso", "Pago de $service por $$amount realizado")
                     fetchAccounts()
                     fetchMovements()
+                    fetchSpendingLimits()
                     onSuccess()
                 } else {
-                    errorMessage = "Pago fallido"
+                    errorMessage = "Pago fallido (Verifica tu límite de gasto)"
                     NotificationHelper.showNotification(context, "Pago Fallido", "No se pudo procesar el pago de $service")
                 }
             } catch (e: Exception) {
@@ -200,6 +278,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     NotificationHelper.showNotification(context, "Abono Exitoso", "Has pagado $$amount a tu tarjeta de crédito")
                     fetchAccounts()
                     fetchMovements()
+                    fetchSpendingLimits()
                     onSuccess()
                 } else {
                     errorMessage = "Abono fallido"
@@ -217,6 +296,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         user = null
         accounts = emptyList()
         movements = emptyList()
+        spendingLimits = emptyList()
         myQrData = null
     }
 }

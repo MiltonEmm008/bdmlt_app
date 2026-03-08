@@ -1,5 +1,7 @@
 package com.example.bancodelmalestar
 
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -13,6 +15,16 @@ interface ApiService {
     @GET("auth/me")
     suspend fun getMe(@Header("Authorization") token: String): Response<User>
 
+    @Multipart
+    @PATCH("auth/me")
+    suspend fun updateMe(
+        @Header("Authorization") token: String,
+        @Part("nombre") nombre: RequestBody? = null,
+        @Part("password_actual") passwordActual: RequestBody? = null,
+        @Part("password_nueva") passwordNueva: RequestBody? = null,
+        @Part foto: MultipartBody.Part? = null
+    ): Response<User>
+
     @GET("cuentas/")
     suspend fun getAccounts(@Header("Authorization") token: String): Response<List<Account>>
 
@@ -23,6 +35,15 @@ interface ApiService {
         @Query("orden_fecha") order: String? = null,
         @Query("tipo") type: String? = null
     ): Response<List<Movement>>
+
+    @GET("cuentas/limite-gasto")
+    suspend fun getSpendingLimits(@Header("Authorization") token: String): Response<List<SpendingLimit>>
+
+    @PUT("cuentas/limite-gasto")
+    suspend fun updateSpendingLimit(
+        @Header("Authorization") token: String,
+        @Body body: UpdateSpendingLimitRequest
+    ): Response<List<SpendingLimit>>
 
     @GET("cuentas/mi-qr")
     suspend fun getMyQr(@Header("Authorization") token: String): Response<MyQrResponse>

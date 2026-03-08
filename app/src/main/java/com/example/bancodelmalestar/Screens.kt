@@ -2,9 +2,12 @@ package com.example.bancodelmalestar
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.launch
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -12,6 +15,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -19,10 +25,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -38,6 +47,8 @@ import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -58,9 +69,16 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.logo_banco),
+            contentDescription = "Logo BDMLT",
+            modifier = Modifier.size(100.dp),
+            contentScale = ContentScale.Fit
+        )
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = if (isRegister) "Registro" else "Iniciar Sesión",
-            style = MaterialTheme.typography.headlineLarge,
+            text = if (isRegister) "Registro BDMLT" else "Bienvenido a BDMLT",
+            style = MaterialTheme.typography.headlineSmall,
             color = AppColors.Red,
             fontWeight = FontWeight.Bold
         )
@@ -173,6 +191,10 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
     var selectedOrder by remember { mutableStateOf("desc") }
     var limit by remember { mutableStateOf("20") }
 
+    var showLimitDialog by remember { mutableStateOf(false) }
+    var limitType by remember { mutableStateOf("debito") }
+    var limitValue by remember { mutableStateOf("") }
+
     val types = listOf(
         "Todas" to null,
         "Transferencia" to "transferencia",
@@ -198,19 +220,37 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
 
         item {
             debit?.let {
-                CardAccount(title = "Cuenta de Débito", number = it.numero, amount = it.saldo)
+                val limitInfo = viewModel.spendingLimits.find { l -> l.tipo == "debito" }
+                CardAccount(
+                    title = "Cuenta de Débito", 
+                    number = it.numero, 
+                    amount = it.saldo,
+                    spendingLimit = limitInfo,
+                    onSetLimit = { 
+                        limitType = "debito"
+                        limitValue = limitInfo?.limiteGastoMensual?.toString() ?: "0"
+                        showLimitDialog = true 
+                    }
+                )
             }
         }
 
         item {
             credit?.let {
+                val limitInfo = viewModel.spendingLimits.find { l -> l.tipo == "credito" }
                 CardAccount(
                     title = "Tarjeta de Crédito",
                     number = it.numero,
                     amount = it.deuda,
                     isCredit = true,
                     limit = it.limiteCredito,
-                    onPayCredit = onPayCreditClick
+                    onPayCredit = onPayCreditClick,
+                    spendingLimit = limitInfo,
+                    onSetLimit = {
+                        limitType = "credito"
+                        limitValue = limitInfo?.limiteGastoMensual?.toString() ?: "0"
+                        showLimitDialog = true
+                    }
                 )
             }
         }
@@ -266,7 +306,6 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
                             }
                         }
                         
-                        Spacer(modifier = Modifier.height(8.dp))
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("Orden:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -359,6 +398,53 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
             MovementItem(movement = movement)
         }
     }
+
+    if (showLimitDialog) {
+        Dialog(onDismissRequest = { showLimitDialog = false }) {
+            Card(
+                modifier = Modifier.padding(16.dp),
+                colors = CardDefaults.cardColors(containerColor = AppColors.White)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Configurar Límite de Gasto", fontWeight = FontWeight.Bold, color = AppColors.Red)
+                    Text("Cuenta: ${limitType.replaceFirstChar { it.uppercase() }}", fontSize = 12.sp)
+                    if (limitType == "credito") {
+                        Text("(Máximo permitido: $5,000)", fontSize = 10.sp, color = AppColors.Gray)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = limitValue,
+                        onValueChange = { limitValue = it },
+                        label = { Text("Límite Mensual (0 para desactivar)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = appTextFieldColors(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                    )
+                    
+                    val parsedLimit = limitValue.toDoubleOrNull() ?: 0.0
+                    val isInvalid = limitType == "credito" && parsedLimit > 5000.0
+                    
+                    if (isInvalid) {
+                        Text("El límite no puede exceder los $5,000", color = AppColors.Red, fontSize = 10.sp)
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            viewModel.updateSpendingLimit(parsedLimit, limitType) {
+                                showLimitDialog = false
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = AppColors.Red),
+                        enabled = !isInvalid
+                    ) {
+                        Text("Guardar Límite", color = Color.White)
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -397,7 +483,11 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
         
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             Button(
-                onClick = { showQrInputDialog = true },
+                onClick = {
+                    onAuthRequired {
+                        showQrInputDialog = true
+                    }
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = AppColors.LightGray),
                 modifier = Modifier.weight(1f).padding(end = 4.dp)
             ) {
@@ -758,6 +848,159 @@ fun PayCreditScreen(
         viewModel.errorMessage?.let {
             Text(it, color = AppColors.Red, modifier = Modifier.padding(top = 8.dp))
         }
+    }
+}
+
+@Composable
+fun ProfileScreen(viewModel: MainViewModel) {
+    val context = LocalContext.current
+    var nombre by remember { mutableStateOf(viewModel.user?.nombre ?: "") }
+    var passwordActual by remember { mutableStateOf("") }
+    var passwordNueva by remember { mutableStateOf("") }
+    var capturedImageFile by remember { mutableStateOf<File?>(null) }
+    var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap != null) {
+            capturedBitmap = bitmap
+            val file = File(context.cacheDir, "profile_temp.jpg")
+            FileOutputStream(file).use { 
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, it) 
+            }
+            capturedImageFile = file
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) cameraLauncher.launch()
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppColors.White)
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            "Mi Perfil",
+            style = MaterialTheme.typography.headlineMedium,
+            color = AppColors.Red,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Box(contentAlignment = Alignment.BottomEnd) {
+            if (capturedBitmap != null) {
+                Image(
+                    bitmap = capturedBitmap!!.asImageBitmap(),
+                    contentDescription = "Nueva foto",
+                    modifier = Modifier.size(120.dp).clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                UserProfileImage(viewModel.user?.fotoPerfil, viewModel.BASE_URL, size = 120)
+            }
+            
+            FloatingActionButton(
+                onClick = {
+                    val permissionCheckResult = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
+                    if (permissionCheckResult == PackageManager.PERMISSION_GRANTED) {
+                        cameraLauncher.launch()
+                    } else {
+                        permissionLauncher.launch(Manifest.permission.CAMERA)
+                    }
+                },
+                modifier = Modifier.size(40.dp),
+                containerColor = AppColors.Red,
+                contentColor = Color.White,
+                shape = CircleShape
+            ) {
+                Icon(Icons.Default.CameraAlt, contentDescription = "Tomar Foto", modifier = Modifier.size(20.dp))
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            viewModel.user?.email ?: "",
+            style = MaterialTheme.typography.bodyLarge,
+            color = AppColors.Gray,
+            fontWeight = FontWeight.Medium
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        OutlinedTextField(
+            value = nombre,
+            onValueChange = { nombre = it },
+            label = { Text("Nombre Completo") },
+            modifier = Modifier.fillMaxWidth(),
+            colors = appTextFieldColors()
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Cambiar Contraseña", fontWeight = FontWeight.Bold, color = AppColors.Gray, modifier = Modifier.align(Alignment.Start))
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        OutlinedTextField(
+            value = passwordActual,
+            onValueChange = { passwordActual = it },
+            label = { Text("Contraseña Actual") },
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth(),
+            colors = appTextFieldColors()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = passwordNueva,
+            onValueChange = { passwordNueva = it },
+            label = { Text("Nueva Contraseña") },
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth(),
+            colors = appTextFieldColors()
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Button(
+            onClick = {
+                val n = if (nombre != viewModel.user?.nombre) nombre else null
+                val pa = if (passwordActual.isNotEmpty()) passwordActual else null
+                val pn = if (passwordNueva.isNotEmpty()) passwordNueva else null
+                
+                viewModel.updateProfile(n, pa, pn, capturedImageFile) {
+                    passwordActual = ""
+                    passwordNueva = ""
+                    capturedImageFile = null
+                    capturedBitmap = null
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = AppColors.Red),
+            enabled = !viewModel.isLoading
+        ) {
+            if (viewModel.isLoading) {
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+            } else {
+                Text("Guardar Cambios", color = Color.White)
+            }
+        }
+        
+        viewModel.errorMessage?.let {
+            Text(it, color = AppColors.Red, modifier = Modifier.padding(top = 8.dp))
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            "Miembro desde: ${viewModel.user?.creadoEn?.split("T")?.get(0) ?: ""}",
+            fontSize = 12.sp,
+            color = AppColors.Gray
+        )
     }
 }
 
