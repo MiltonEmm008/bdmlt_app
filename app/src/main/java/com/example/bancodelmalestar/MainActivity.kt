@@ -2,7 +2,6 @@ package com.example.bancodelmalestar
 
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.padding
@@ -17,6 +16,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.bancodelmalestar.ui.components.AppHeader
+import com.example.bancodelmalestar.ui.components.BottomNavigationBar
+import com.example.bancodelmalestar.ui.screens.*
+import com.example.bancodelmalestar.ui.theme.BancoDelMalestarTheme
+import com.example.bancodelmalestar.ui.viewmodel.MainViewModel
 
 class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
