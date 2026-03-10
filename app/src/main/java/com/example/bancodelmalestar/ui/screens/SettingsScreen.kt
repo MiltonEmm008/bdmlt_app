@@ -2,7 +2,6 @@ package com.example.bancodelmalestar.ui.screens
 
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -73,16 +72,6 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateToProfile: () -> Unit) {
                 else -> s.spanish
             },
             onClick = { showLangDialog = true }
-        )
-
-        SettingsItem(
-            icon = Icons.Default.DeleteForever,
-            title = s.deleteAccount,
-            subtitle = s.deleteAccountWarning,
-            iconColor = AppColors.Red,
-            onClick = {
-                Toast.makeText(context, s.comingSoon, Toast.LENGTH_SHORT).show()
-            }
         )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))

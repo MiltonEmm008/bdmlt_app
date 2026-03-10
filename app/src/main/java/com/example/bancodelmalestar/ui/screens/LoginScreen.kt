@@ -3,7 +3,9 @@ package com.example.bancodelmalestar.ui.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -28,12 +30,19 @@ import com.example.bancodelmalestar.util.getAppStrings
 fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
     val s = getAppStrings(viewModel)
     var isRegister by remember { mutableStateOf(false) }
+    
+    // Form fields
     var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var localError by remember { mutableStateOf<String?>(null) }
+    var telefono by remember { mutableStateOf("") }
+    var calleNumero by remember { mutableStateOf("") }
+    var colonia by remember { mutableStateOf("") }
+    var ciudad by remember { mutableStateOf("") }
+    var codigoPostal by remember { mutableStateOf("") }
     
+    var localError by remember { mutableStateOf<String?>(null) }
     var showUrlDialog by remember { mutableStateOf(false) }
     var tempUrl by remember { mutableStateOf(viewModel.BASE_URL) }
 
@@ -41,7 +50,8 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -106,6 +116,57 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     singleLine = true
                 )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Información Adicional (Opcional)", color = AppColors.Gray, fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                OutlinedTextField(
+                    value = telefono,
+                    onValueChange = { telefono = it },
+                    label = { Text("Teléfono") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = appTextFieldColors(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = calleNumero,
+                    onValueChange = { calleNumero = it },
+                    label = { Text("Calle y Número") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = appTextFieldColors(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = colonia,
+                    onValueChange = { colonia = it },
+                    label = { Text("Colonia") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = appTextFieldColors(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = ciudad,
+                    onValueChange = { ciudad = it },
+                    label = { Text("Ciudad") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = appTextFieldColors(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = codigoPostal,
+                    onValueChange = { codigoPostal = it },
+                    label = { Text("Código Postal") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = appTextFieldColors(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true
+                )
             }
             
             val displayError = localError ?: viewModel.errorMessage
@@ -119,13 +180,21 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
                 onClick = {
                     if (isRegister) {
                         if (password != confirmPassword) {
-                            localError = "Error"
+                            localError = "Contraseñas no coinciden"
                         } else if (password.length < 6) {
-                            localError = "Error"
+                            localError = "Contraseña muy corta"
                         } else if (nombre.isBlank() || email.isBlank()) {
-                            localError = "Error"
+                            localError = "Campos obligatorios vacíos"
                         } else {
-                            viewModel.register(nombre, email, password, onLoginSuccess)
+                            viewModel.register(
+                                nombre, email, password,
+                                telefono.ifBlank { null },
+                                calleNumero.ifBlank { null },
+                                colonia.ifBlank { null },
+                                ciudad.ifBlank { null },
+                                codigoPostal.ifBlank { null },
+                                onLoginSuccess
+                            )
                         }
                     } else {
                         viewModel.login(email, password, onLoginSuccess)

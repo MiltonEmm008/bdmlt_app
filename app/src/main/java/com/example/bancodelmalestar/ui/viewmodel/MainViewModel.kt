@@ -96,12 +96,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun register(nombre: String, email: String, password: String, onSuccess: () -> Unit) {
+    fun register(
+        nombre: String,
+        email: String,
+        password: String,
+        telefono: String?,
+        calleNumero: String?,
+        colonia: String?,
+        ciudad: String?,
+        codigoPostal: String?,
+        onSuccess: () -> Unit
+    ) {
         viewModelScope.launch {
             isLoading = true
             errorMessage = null
+            val body = mutableMapOf(
+                "nombre" to nombre,
+                "email" to email,
+                "password" to password
+            )
+            telefono?.let { body["telefono"] = it }
+            calleNumero?.let { body["calle_numero"] = it }
+            colonia?.let { body["colonia"] = it }
+            ciudad?.let { body["ciudad"] = it }
+            codigoPostal?.let { body["codigo_postal"] = it }
+
             try {
-                val response = apiService.register(mapOf("nombre" to nombre, "email" to email, "password" to password))
+                val response = apiService.register(body)
                 if (response.isSuccessful) {
                     token = "Bearer ${response.body()?.accessToken}"
                     prefs.edit().putString("token", token).apply()
@@ -109,6 +130,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     onSuccess()
                 } else {
                     errorMessage = "Error en el registro"
+                }
+            } catch (e: Exception) {
+                errorMessage = "Error de red"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    fun deactivateAccount(email: String, password: String, confirmarPassword: String, onSuccess: () -> Unit) {
+        val currentToken = token ?: return
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            try {
+                val res = apiService.deactivate(currentToken, DeactivateRequest(email, password, confirmarPassword))
+                if (res.isSuccessful) {
+                    logout()
+                    onSuccess()
+                } else {
+                    errorMessage = "Error al desactivar cuenta"
                 }
             } catch (e: Exception) {
                 errorMessage = "Error de red"
@@ -256,13 +298,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun updateProfile(nombre: String?, passActual: String?, passNueva: String?, imageFile: File?, onSuccess: () -> Unit) {
+    fun updateProfile(
+        nombre: String?,
+        telefono: String?,
+        calleNumero: String?,
+        colonia: String?,
+        ciudad: String?,
+        codigoPostal: String?,
+        passActual: String?,
+        passNueva: String?,
+        imageFile: File?,
+        onSuccess: () -> Unit
+    ) {
         val currentToken = token ?: return
         viewModelScope.launch {
             isLoading = true
             errorMessage = null
             try {
                 val nameBody = nombre?.toRequestBody("text/plain".toMediaTypeOrNull())
+                val telBody = telefono?.toRequestBody("text/plain".toMediaTypeOrNull())
+                val calleBody = calleNumero?.toRequestBody("text/plain".toMediaTypeOrNull())
+                val colBody = colonia?.toRequestBody("text/plain".toMediaTypeOrNull())
+                val ciuBody = ciudad?.toRequestBody("text/plain".toMediaTypeOrNull())
+                val cpBody = codigoPostal?.toRequestBody("text/plain".toMediaTypeOrNull())
+                
                 val paBody = passActual?.toRequestBody("text/plain".toMediaTypeOrNull())
                 val pnBody = passNueva?.toRequestBody("text/plain".toMediaTypeOrNull())
                 val photoPart = imageFile?.let {
@@ -270,7 +329,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     MultipartBody.Part.createFormData("foto", it.name, requestFile)
                 }
 
-                val res = apiService.updateMe(currentToken, nameBody, paBody, pnBody, photoPart)
+                val res = apiService.updateMe(currentToken, nameBody, telBody, calleBody, colBody, ciuBody, cpBody, paBody, pnBody, photoPart)
                 if (res.isSuccessful) {
                     user = res.body()
                     onSuccess()

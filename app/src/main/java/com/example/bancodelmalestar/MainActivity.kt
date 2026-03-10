@@ -82,7 +82,11 @@ class MainActivity : FragmentActivity() {
                             }
                         }
                         composable("profile") {
-                            ProfileScreen(viewModel)
+                            ProfileScreen(viewModel) {
+                                navController.navigate("login") {
+                                    popUpTo("login") { inclusive = true }
+                                }
+                            }
                         }
                         composable("branches") {
                             BranchesScreen()

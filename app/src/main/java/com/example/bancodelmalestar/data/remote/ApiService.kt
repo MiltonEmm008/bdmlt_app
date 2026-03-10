@@ -21,10 +21,18 @@ interface ApiService {
     suspend fun updateMe(
         @Header("Authorization") token: String,
         @Part("nombre") nombre: RequestBody? = null,
+        @Part("telefono") telefono: RequestBody? = null,
+        @Part("calle_numero") calleNumero: RequestBody? = null,
+        @Part("colonia") colonia: RequestBody? = null,
+        @Part("ciudad") ciudad: RequestBody? = null,
+        @Part("codigo_postal") codigoPostal: RequestBody? = null,
         @Part("password_actual") passwordActual: RequestBody? = null,
         @Part("password_nueva") passwordNueva: RequestBody? = null,
         @Part foto: MultipartBody.Part? = null
     ): Response<User>
+
+    @POST("auth/desactivar")
+    suspend fun deactivate(@Header("Authorization") token: String, @Body body: DeactivateRequest): Response<Map<String, String>>
 
     @GET("cuentas/")
     suspend fun getAccounts(@Header("Authorization") token: String): Response<List<Account>>

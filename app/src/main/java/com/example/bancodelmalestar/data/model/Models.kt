@@ -11,8 +11,20 @@ data class User(
     val id: Int,
     val nombre: String,
     val email: String,
+    val telefono: String?,
+    @SerializedName("calle_numero") val calleNumero: String?,
+    val colonia: String?,
+    val ciudad: String?,
+    @SerializedName("codigo_postal") val codigoPostal: String?,
+    val activo: Boolean,
     @SerializedName("foto_perfil") val fotoPerfil: String?,
-    @SerializedName("creado_en") val creadoEn: String
+    @SerializedName("creado_en") val creadaEn: String
+)
+
+data class DeactivateRequest(
+    val email: String,
+    val password: String,
+    @SerializedName("confirmar_password") val confirmarPassword: String
 )
 
 data class Account(
