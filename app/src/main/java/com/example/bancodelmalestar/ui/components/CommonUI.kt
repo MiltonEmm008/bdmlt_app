@@ -1,6 +1,7 @@
-package com.example.bancodelmalestar
+package com.example.bancodelmalestar.ui.components
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,34 +24,34 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.bancodelmalestar.R
+import com.example.bancodelmalestar.data.model.Account
+import com.example.bancodelmalestar.data.model.Movement
+import com.example.bancodelmalestar.data.model.SpendingLimit
+import com.example.bancodelmalestar.ui.theme.AppColors
+import com.example.bancodelmalestar.ui.theme.isAppDarkTheme
+import com.example.bancodelmalestar.ui.viewmodel.MainViewModel
+import com.example.bancodelmalestar.util.getAppStrings
 import java.util.Locale
-
-object AppColors {
-    val Red = Color(0xFFD32F2F)
-    val Green = Color(0xFF388E3C)
-    val Gray = Color(0xFF757575)
-    val LightGray = Color(0xFFF5F5F5)
-    val White = Color(0xFFFFFFFF)
-    val Black = Color(0xFF212121)
-    val HeaderBg = Color(0xFFEEEEEE)
-}
 
 @Composable
 fun appTextFieldColors(): TextFieldColors {
     return OutlinedTextFieldDefaults.colors(
         focusedBorderColor = AppColors.Red,
-        unfocusedBorderColor = AppColors.Gray,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
         focusedLabelColor = AppColors.Red,
-        unfocusedLabelColor = AppColors.Gray,
+        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
         cursorColor = AppColors.Red,
-        focusedTextColor = AppColors.Black,
-        unfocusedTextColor = AppColors.Black
+        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppHeader() {
+fun AppHeader(onLogout: () -> Unit, viewModel: MainViewModel) {
+    val isDark = isAppDarkTheme(viewModel)
+    val strings = getAppStrings(viewModel)
     TopAppBar(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -63,14 +64,23 @@ fun AppHeader() {
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     "BDMLT",
-                    color = AppColors.Black,
+                    color = if (isDark) Color.White else AppColors.Black,
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
                 )
             }
         },
+        actions = {
+            IconButton(onClick = onLogout) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                    contentDescription = strings.logout,
+                    tint = AppColors.Red
+                )
+            }
+        },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = AppColors.HeaderBg
+            containerColor = if (isDark) AppColors.HeaderBgDark else AppColors.HeaderBgLight
         )
     )
 }
@@ -79,19 +89,20 @@ fun AppHeader() {
 fun BottomNavigationBar(
     currentRoute: String,
     onNavigate: (String) -> Unit,
-    onLogout: () -> Unit
+    viewModel: MainViewModel
 ) {
+    val strings = getAppStrings(viewModel)
     NavigationBar(
-        containerColor = AppColors.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 8.dp
     ) {
-        val items = remember {
+        val items = remember(strings) {
             listOf(
-                Triple("home", Icons.Default.Home, "Inicio"),
-                Triple("transfers", Icons.AutoMirrored.Filled.Send, "Transf."),
-                Triple("services", Icons.Default.Receipt, "Servicios"),
-                Triple("profile", Icons.Default.Person, "Perfil"),
-                Triple("branches", Icons.Default.LocationOn, "Sucurs.")
+                Triple("home", Icons.Default.Home, strings.hello),
+                Triple("transfers", Icons.AutoMirrored.Filled.Send, strings.transfers),
+                Triple("services", Icons.Default.Receipt, strings.services),
+                Triple("branches", Icons.Default.LocationOn, strings.branches),
+                Triple("settings", Icons.Default.Settings, strings.settings)
             )
         }
 
@@ -105,20 +116,57 @@ fun BottomNavigationBar(
                     selectedIconColor = AppColors.Red,
                     unselectedIconColor = AppColors.Gray,
                     selectedTextColor = AppColors.Red,
-                    indicatorColor = AppColors.LightGray
+                    indicatorColor = AppColors.Red.copy(alpha = 0.1f)
                 )
             )
         }
-        
-        NavigationBarItem(
-            icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Salir") },
-            label = { Text("Salir", fontSize = 10.sp) },
-            selected = false,
-            onClick = onLogout,
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = AppColors.Gray
+    }
+}
+
+@Composable
+fun PhysicalCard(number: String, isCredit: Boolean) {
+    val bgColor = if (isCredit) AppColors.Red else AppColors.Green
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp)
+            .padding(bottom = 16.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = bgColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(35.dp)
+                    .padding(top = 25.dp)
+                    .background(Color.White.copy(alpha = 0.8f))
             )
-        )
+
+            Text(
+                text = number.chunked(4).joinToString(" "),
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(16.dp),
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 2.sp
+            )
+
+            Image(
+                painter = painterResource(id = R.drawable.logo_banco),
+                contentDescription = null,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+                    .size(45.dp)
+                    .clip(CircleShape)
+                    .background(Color.White),
+                contentScale = ContentScale.Fit
+            )
+        }
     }
 }
 
@@ -131,17 +179,21 @@ fun CardAccount(
     limit: Double = 0.0,
     onPayCredit: (() -> Unit)? = null,
     spendingLimit: SpendingLimit? = null,
-    onSetLimit: () -> Unit
+    onSetLimit: () -> Unit,
+    viewModel: MainViewModel
 ) {
+    val strings = getAppStrings(viewModel)
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = AppColors.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            PhysicalCard(number = number, isCredit = isCredit)
+            
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -153,14 +205,9 @@ fun CardAccount(
                     color = if (isCredit) AppColors.Red else AppColors.Green
                 )
                 IconButton(onClick = onSetLimit, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.Settings, contentDescription = "Configurar Límite", tint = AppColors.Gray)
+                    Icon(Icons.Default.Settings, contentDescription = strings.settings, tint = AppColors.Gray)
                 }
             }
-            Text(
-                "No. $number",
-                style = MaterialTheme.typography.bodySmall,
-                color = AppColors.Gray
-            )
             Spacer(modifier = Modifier.height(8.dp))
             
             val amountText = remember(amount) { String.format(Locale.US, "$%.2f", amount) }
@@ -168,7 +215,7 @@ fun CardAccount(
                 amountText,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = AppColors.Black
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             if (spendingLimit != null && spendingLimit.limiteGastoMensual > 0) {
@@ -178,19 +225,19 @@ fun CardAccount(
                     progress = { progress.coerceIn(0f, 1f) },
                     modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                     color = if (progress > 0.9f) AppColors.Red else AppColors.Green,
-                    trackColor = AppColors.LightGray
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        "Gastado: $${String.format(Locale.US, "%.2f", spendingLimit.gastoMesActual)}",
+                        "${strings.limit}: $${String.format(Locale.US, "%.2f", spendingLimit.gastoMesActual)}",
                         fontSize = 10.sp,
                         color = AppColors.Gray
                     )
                     Text(
-                        "Límite: $${String.format(Locale.US, "%.2f", spendingLimit.limiteGastoMensual)}",
+                        "${strings.limit}: $${String.format(Locale.US, "%.2f", spendingLimit.limiteGastoMensual)}",
                         fontSize = 10.sp,
                         color = AppColors.Gray
                     )
@@ -198,7 +245,7 @@ fun CardAccount(
             }
 
             if (isCredit) {
-                val limitText = remember(limit) { String.format(Locale.US, "Límite Crédito: $%.2f", limit) }
+                val limitText = remember(limit) { String.format(Locale.US, "${strings.limit}: $%.2f", limit) }
                 Text(
                     limitText,
                     style = MaterialTheme.typography.bodySmall,
@@ -211,7 +258,7 @@ fun CardAccount(
                         modifier = Modifier.padding(top = 8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = AppColors.Red)
                     ) {
-                        Text("Pagar Deuda", color = Color.White)
+                        Text(strings.payDebt, color = Color.White)
                     }
                 }
             }
@@ -220,12 +267,12 @@ fun CardAccount(
 }
 
 @Composable
-fun MovementItem(movement: Movement) {
+fun MovementItem(movement: Movement, viewModel: MainViewModel) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = AppColors.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -239,7 +286,7 @@ fun MovementItem(movement: Movement) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     movement.descripcion,
-                    color = AppColors.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp
                 )

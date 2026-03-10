@@ -2,7 +2,6 @@ package com.example.bancodelmalestar
 
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.padding
@@ -17,6 +16,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.bancodelmalestar.ui.components.AppHeader
+import com.example.bancodelmalestar.ui.components.BottomNavigationBar
+import com.example.bancodelmalestar.ui.screens.*
+import com.example.bancodelmalestar.ui.theme.BancoDelMalestarTheme
+import com.example.bancodelmalestar.ui.viewmodel.MainViewModel
 
 class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,61 +32,76 @@ class MainActivity : FragmentActivity() {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStackEntry?.destination?.route ?: "login"
 
-            Scaffold(
-                topBar = { if (currentRoute != "login") AppHeader() },
-                bottomBar = {
-                    if (currentRoute != "login") {
-                        BottomNavigationBar(
-                            currentRoute = currentRoute,
-                            onNavigate = { navController.navigate(it) },
-                            onLogout = {
+            BancoDelMalestarTheme(viewModel = viewModel) {
+                Scaffold(
+                    topBar = { 
+                        if (currentRoute != "login") {
+                            AppHeader(onLogout = {
                                 viewModel.logout()
                                 navController.navigate("login") {
-                                    popUpTo(0)
+                                    popUpTo("login") { inclusive = true }
+                                }
+                            }, viewModel = viewModel)
+                        } 
+                    },
+                    bottomBar = {
+                        if (currentRoute != "login") {
+                            BottomNavigationBar(
+                                currentRoute = currentRoute,
+                                onNavigate = { navController.navigate(it) },
+                                viewModel = viewModel
+                            )
+                        }
+                    }
+                ) { innerPadding ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = "login",
+                        modifier = Modifier.padding(innerPadding)
+                    ) {
+                        composable("login") {
+                            LoginScreen(viewModel) {
+                                navController.navigate("home") {
+                                    popUpTo("login") { inclusive = true }
                                 }
                             }
-                        )
-                    }
-                }
-            ) { innerPadding ->
-                NavHost(
-                    navController = navController,
-                    startDestination = "login",
-                    modifier = Modifier.padding(innerPadding)
-                ) {
-                    composable("login") {
-                        LoginScreen(viewModel) {
-                            navController.navigate("home") {
-                                popUpTo("login") { inclusive = true }
+                        }
+                        composable("home") {
+                            HomeScreen(viewModel) {
+                                navController.navigate("pay_credit")
                             }
                         }
-                    }
-                    composable("home") {
-                        HomeScreen(viewModel) {
-                            navController.navigate("pay_credit")
+                        composable("transfers") {
+                            TransfersScreen(viewModel) { onAuth ->
+                                showBiometricPrompt(onAuth)
+                            }
                         }
-                    }
-                    composable("transfers") {
-                        TransfersScreen(viewModel) { onAuth ->
-                            showBiometricPrompt(onAuth)
+                        composable("services") {
+                            ServicesScreen(viewModel) { onAuth ->
+                                showBiometricPrompt(onAuth)
+                            }
                         }
-                    }
-                    composable("services") {
-                        ServicesScreen(viewModel) { onAuth ->
-                            showBiometricPrompt(onAuth)
+                        composable("profile") {
+                            ProfileScreen(viewModel) {
+                                navController.navigate("login") {
+                                    popUpTo("login") { inclusive = true }
+                                }
+                            }
                         }
-                    }
-                    composable("profile") {
-                        ProfileScreen(viewModel)
-                    }
-                    composable("branches") {
-                        BranchesScreen()
-                    }
-                    composable("pay_credit") {
-                        PayCreditScreen(viewModel, { onAuth ->
-                            showBiometricPrompt(onAuth)
-                        }) {
-                            navController.popBackStack()
+                        composable("branches") {
+                            BranchesScreen()
+                        }
+                        composable("settings") {
+                            SettingsScreen(viewModel, onNavigateToProfile = {
+                                navController.navigate("profile")
+                            })
+                        }
+                        composable("pay_credit") {
+                            PayCreditScreen(viewModel, { onAuth ->
+                                showBiometricPrompt(onAuth)
+                            }) {
+                                navController.popBackStack()
+                            }
                         }
                     }
                 }

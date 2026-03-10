@@ -1,4 +1,4 @@
-package com.example.bancodelmalestar
+package com.example.bancodelmalestar.util
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -9,6 +9,7 @@ import androidx.core.app.NotificationManagerCompat
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import com.example.bancodelmalestar.R
 
 object NotificationHelper {
     private const val CHANNEL_ID = "bdmlt_notifications"
@@ -36,7 +37,7 @@ object NotificationHelper {
         }
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.logo_banco) // Assumed to exist or using launcher icon
+            .setSmallIcon(R.drawable.logo_banco)
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

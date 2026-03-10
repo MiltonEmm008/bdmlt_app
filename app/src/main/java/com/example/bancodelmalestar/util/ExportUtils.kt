@@ -1,13 +1,16 @@
-package com.example.bancodelmalestar
+package com.example.bancodelmalestar.util
 
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
 import androidx.core.content.FileProvider
+import com.example.bancodelmalestar.R
+import com.example.bancodelmalestar.data.model.Account
+import com.example.bancodelmalestar.data.model.Movement
+import com.example.bancodelmalestar.data.model.User
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
