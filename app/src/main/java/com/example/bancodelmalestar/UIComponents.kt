@@ -88,7 +88,6 @@ fun BancoDelMalestarTheme(
 
 @Composable
 fun appTextFieldColors(): TextFieldColors {
-    val isDark = isSystemInDarkTheme() // This is a bit tricky if we want to follow viewModel, but MaterialTheme.colorScheme is better
     return OutlinedTextFieldDefaults.colors(
         focusedBorderColor = AppColors.Red,
         unfocusedBorderColor = MaterialTheme.colorScheme.outline,
@@ -151,7 +150,7 @@ fun BottomNavigationBar(
                 Triple("home", Icons.Default.Home, "Inicio"),
                 Triple("transfers", Icons.AutoMirrored.Filled.Send, "Transf."),
                 Triple("services", Icons.Default.Receipt, "Servicios"),
-                Triple("profile", Icons.Default.Person, "Perfil"),
+                Triple("branches", Icons.Default.LocationOn, "Sucursales"),
                 Triple("settings", Icons.Default.Settings, "Config.")
             )
         }

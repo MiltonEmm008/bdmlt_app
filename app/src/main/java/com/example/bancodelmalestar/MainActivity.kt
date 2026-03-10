@@ -83,7 +83,9 @@ class MainActivity : FragmentActivity() {
                             BranchesScreen()
                         }
                         composable("settings") {
-                            SettingsScreen(viewModel)
+                            SettingsScreen(viewModel, onNavigateToProfile = {
+                                navController.navigate("profile")
+                            })
                         }
                         composable("pay_credit") {
                             PayCreditScreen(viewModel, { onAuth ->

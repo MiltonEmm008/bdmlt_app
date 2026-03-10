@@ -1108,7 +1108,7 @@ fun BranchesScreen() {
 }
 
 @Composable
-fun SettingsScreen(viewModel: MainViewModel) {
+fun SettingsScreen(viewModel: MainViewModel, onNavigateToProfile: () -> Unit) {
     val context = LocalContext.current
     var showThemeDialog by remember { mutableStateOf(false) }
     
@@ -1126,6 +1126,13 @@ fun SettingsScreen(viewModel: MainViewModel) {
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(24.dp))
+
+        SettingsItem(
+            icon = Icons.Default.Person,
+            title = "Mi Perfil",
+            subtitle = "Edita tus datos personales y foto",
+            onClick = onNavigateToProfile
+        )
 
         SettingsItem(
             icon = Icons.Default.Brightness6,
