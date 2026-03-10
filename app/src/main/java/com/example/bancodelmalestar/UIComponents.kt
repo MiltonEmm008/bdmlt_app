@@ -103,6 +103,7 @@ fun appTextFieldColors(): TextFieldColors {
 @Composable
 fun AppHeader(onLogout: () -> Unit, viewModel: MainViewModel) {
     val isDark = isAppDarkTheme(viewModel)
+    val strings = getAppStrings(viewModel)
     TopAppBar(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -125,7 +126,7 @@ fun AppHeader(onLogout: () -> Unit, viewModel: MainViewModel) {
             IconButton(onClick = onLogout) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                    contentDescription = "Cerrar Sesión",
+                    contentDescription = strings.logout,
                     tint = AppColors.Red
                 )
             }
@@ -139,19 +140,21 @@ fun AppHeader(onLogout: () -> Unit, viewModel: MainViewModel) {
 @Composable
 fun BottomNavigationBar(
     currentRoute: String,
-    onNavigate: (String) -> Unit
+    onNavigate: (String) -> Unit,
+    viewModel: MainViewModel
 ) {
+    val strings = getAppStrings(viewModel)
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 8.dp
     ) {
-        val items = remember {
+        val items = remember(strings) {
             listOf(
-                Triple("home", Icons.Default.Home, "Inicio"),
-                Triple("transfers", Icons.AutoMirrored.Filled.Send, "Transf."),
-                Triple("services", Icons.Default.Receipt, "Servicios"),
-                Triple("branches", Icons.Default.LocationOn, "Sucursales"),
-                Triple("settings", Icons.Default.Settings, "Config.")
+                Triple("home", Icons.Default.Home, strings.hello),
+                Triple("transfers", Icons.AutoMirrored.Filled.Send, strings.transfers),
+                Triple("services", Icons.Default.Receipt, strings.services),
+                Triple("branches", Icons.Default.LocationOn, strings.branches),
+                Triple("settings", Icons.Default.Settings, strings.settings)
             )
         }
 
@@ -228,8 +231,10 @@ fun CardAccount(
     limit: Double = 0.0,
     onPayCredit: (() -> Unit)? = null,
     spendingLimit: SpendingLimit? = null,
-    onSetLimit: () -> Unit
+    onSetLimit: () -> Unit,
+    viewModel: MainViewModel
 ) {
+    val strings = getAppStrings(viewModel)
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -252,7 +257,7 @@ fun CardAccount(
                     color = if (isCredit) AppColors.Red else AppColors.Green
                 )
                 IconButton(onClick = onSetLimit, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.Settings, contentDescription = "Configurar Límite", tint = AppColors.Gray)
+                    Icon(Icons.Default.Settings, contentDescription = strings.settings, tint = AppColors.Gray)
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -279,12 +284,12 @@ fun CardAccount(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        "Gastado: $${String.format(Locale.US, "%.2f", spendingLimit.gastoMesActual)}",
+                        "${strings.limit}: $${String.format(Locale.US, "%.2f", spendingLimit.gastoMesActual)}",
                         fontSize = 10.sp,
                         color = AppColors.Gray
                     )
                     Text(
-                        "Límite: $${String.format(Locale.US, "%.2f", spendingLimit.limiteGastoMensual)}",
+                        "${strings.limit}: $${String.format(Locale.US, "%.2f", spendingLimit.limiteGastoMensual)}",
                         fontSize = 10.sp,
                         color = AppColors.Gray
                     )
@@ -292,7 +297,7 @@ fun CardAccount(
             }
 
             if (isCredit) {
-                val limitText = remember(limit) { String.format(Locale.US, "Límite Crédito: $%.2f", limit) }
+                val limitText = remember(limit) { String.format(Locale.US, "${strings.limit}: $%.2f", limit) }
                 Text(
                     limitText,
                     style = MaterialTheme.typography.bodySmall,
@@ -305,7 +310,7 @@ fun CardAccount(
                         modifier = Modifier.padding(top = 8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = AppColors.Red)
                     ) {
-                        Text("Pagar Deuda", color = Color.White)
+                        Text(strings.payDebt, color = Color.White)
                     }
                 }
             }
@@ -314,7 +319,7 @@ fun CardAccount(
 }
 
 @Composable
-fun MovementItem(movement: Movement) {
+fun MovementItem(movement: Movement, viewModel: MainViewModel) {
     Card(
         modifier = Modifier
             .fillMaxWidth()

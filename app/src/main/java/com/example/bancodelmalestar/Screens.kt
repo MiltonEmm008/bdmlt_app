@@ -57,6 +57,7 @@ import java.util.*
 
 @Composable
 fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
+    val s = getAppStrings(viewModel)
     var isRegister by remember { mutableStateOf(false) }
     var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -83,7 +84,7 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = if (isRegister) "Registro BDMLT" else "Bienvenido a BDMLT",
+                text = if (isRegister) s.register else s.welcome,
                 style = MaterialTheme.typography.headlineSmall,
                 color = AppColors.Red,
                 fontWeight = FontWeight.Bold
@@ -94,7 +95,7 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
                 OutlinedTextField(
                     value = nombre,
                     onValueChange = { nombre = it; localError = null },
-                    label = { Text("Nombre Completo") },
+                    label = { Text(s.name) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = appTextFieldColors(),
                     singleLine = true
@@ -105,7 +106,7 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it; localError = null },
-                label = { Text("Correo Electrónico") },
+                label = { Text(s.email) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = appTextFieldColors(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -116,7 +117,7 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it; localError = null },
-                label = { Text("Contraseña") },
+                label = { Text(s.password) },
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
                 colors = appTextFieldColors(),
@@ -129,7 +130,7 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
                 OutlinedTextField(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it; localError = null },
-                    label = { Text("Confirmar Contraseña") },
+                    label = { Text(s.confirmPassword) },
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
                     colors = appTextFieldColors(),
@@ -149,11 +150,11 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
                 onClick = {
                     if (isRegister) {
                         if (password != confirmPassword) {
-                            localError = "Las contraseñas no coinciden"
+                            localError = "Error"
                         } else if (password.length < 6) {
-                            localError = "La contraseña debe tener al menos 6 caracteres"
+                            localError = "Error"
                         } else if (nombre.isBlank() || email.isBlank()) {
-                            localError = "Todos los campos son obligatorios"
+                            localError = "Error"
                         } else {
                             viewModel.register(nombre, email, password, onLoginSuccess)
                         }
@@ -168,7 +169,7 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
                 if (viewModel.isLoading) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                 } else {
-                    Text(if (isRegister) "Registrar" else "Entrar", color = Color.White)
+                    Text(if (isRegister) s.doRegister else s.enter, color = Color.White)
                 }
             }
 
@@ -178,7 +179,7 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
                 confirmPassword = ""
             }) {
                 Text(
-                    if (isRegister) "¿Ya tienes cuenta? Inicia sesión" else "¿No tienes cuenta? Regístrate",
+                    if (isRegister) s.haveAccount else s.noAccount,
                     color = AppColors.Gray
                 )
             }
@@ -190,22 +191,22 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
                 .align(Alignment.TopEnd)
                 .padding(8.dp)
         ) {
-            Icon(Icons.Default.Settings, contentDescription = "Configurar URL", tint = AppColors.Gray)
+            Icon(Icons.Default.Settings, contentDescription = s.settings, tint = AppColors.Gray)
         }
     }
 
     if (showUrlDialog) {
         AlertDialog(
             onDismissRequest = { showUrlDialog = false },
-            title = { Text("Configurar URL Base") },
+            title = { Text("URL Base") },
             text = {
                 Column {
-                    Text("Dirección actual: ${viewModel.BASE_URL}", fontSize = 12.sp, color = AppColors.Gray)
+                    Text("${viewModel.BASE_URL}", fontSize = 12.sp, color = AppColors.Gray)
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = tempUrl,
                         onValueChange = { tempUrl = it },
-                        label = { Text("Nueva URL (ej: http://192.168.1.5:3000)") },
+                        label = { Text("http://ip:port") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = appTextFieldColors(),
                         singleLine = true
@@ -217,12 +218,12 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
                     viewModel.updateBaseUrl(tempUrl)
                     showUrlDialog = false
                 }) {
-                    Text("Guardar", color = AppColors.Red)
+                    Text(s.save, color = AppColors.Red)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showUrlDialog = false }) {
-                    Text("Cancelar", color = AppColors.Gray)
+                    Text(s.cancel, color = AppColors.Gray)
                 }
             }
         )
@@ -232,6 +233,7 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
+    val s = getAppStrings(viewModel)
     val debit = remember(viewModel.accounts) { viewModel.accounts.find { it.tipo == "debito" } }
     val credit = remember(viewModel.accounts) { viewModel.accounts.find { it.tipo == "credito" } }
     val context = LocalContext.current
@@ -245,13 +247,6 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
     var limitType by remember { mutableStateOf("debito") }
     var limitValue by remember { mutableStateOf("") }
 
-    val types = listOf(
-        "Todas" to null,
-        "Transferencia" to "transferencia",
-        "Servicio" to "pago_servicio",
-        "Crédito" to "pago_credito",
-        "Depósito" to "deposito"
-    )
 
     PullToRefreshBox(
         isRefreshing = viewModel.isLoading,
@@ -265,7 +260,7 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
         ) {
             item {
                 Text(
-                    "Hola, ${viewModel.user?.nombre ?: ""}", 
+                    "${s.hello}, ${viewModel.user?.nombre ?: ""}", 
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onBackground
                 )
@@ -276,7 +271,7 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
                 debit?.let {
                     val limitInfo = viewModel.spendingLimits.find { l -> l.tipo == "debito" }
                     CardAccount(
-                        title = "Cuenta de Débito", 
+                        title = s.debitAccount, 
                         number = it.numero, 
                         amount = it.saldo,
                         spendingLimit = limitInfo,
@@ -284,7 +279,8 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
                             limitType = "debito"
                             limitValue = limitInfo?.limiteGastoMensual?.toString() ?: "0"
                             showLimitDialog = true 
-                        }
+                        },
+                        viewModel = viewModel
                     )
                 }
             }
@@ -293,7 +289,7 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
                 credit?.let {
                     val limitInfo = viewModel.spendingLimits.find { l -> l.tipo == "credito" }
                     CardAccount(
-                        title = "Tarjeta de Crédito",
+                        title = s.creditCard,
                         number = it.numero,
                         amount = it.deuda,
                         isCredit = true,
@@ -304,7 +300,8 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
                             limitType = "credito"
                             limitValue = limitInfo?.limiteGastoMensual?.toString() ?: "0"
                             showLimitDialog = true
-                        }
+                        },
+                        viewModel = viewModel
                     )
                 }
             }
@@ -323,7 +320,7 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
                         Icon(Icons.Default.FilterList, contentDescription = null, tint = AppColors.Red)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "Filtros de Movimientos",
+                            s.movementFilters,
                             fontWeight = FontWeight.Bold,
                             color = AppColors.Red
                         )
@@ -342,9 +339,9 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("Tipo de movimiento:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(s.movementType, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                types.forEach { (label, value) ->
+                                listOf("Todas" to null, "Transferencia" to "transferencia", "Servicio" to "pago_servicio", "Crédito" to "pago_credito", "Depósito" to "deposito").forEach { (label, value) ->
                                     FilterChip(
                                         selected = selectedType == value,
                                         onClick = { 
@@ -362,7 +359,7 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
                             
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Orden:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text(s.order, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         RadioButton(
                                             selected = selectedOrder == "desc",
@@ -372,7 +369,7 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
                                             },
                                             colors = RadioButtonDefaults.colors(selectedColor = AppColors.Red)
                                         )
-                                        Text("Recientes", fontSize = 12.sp)
+                                        Text(s.recent, fontSize = 12.sp)
                                         Spacer(modifier = Modifier.width(8.dp))
                                         RadioButton(
                                             selected = selectedOrder == "asc",
@@ -382,7 +379,7 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
                                             },
                                             colors = RadioButtonDefaults.colors(selectedColor = AppColors.Red)
                                         )
-                                        Text("Antiguos", fontSize = 12.sp)
+                                        Text(s.old, fontSize = 12.sp)
                                     }
                                 }
                                 
@@ -394,7 +391,7 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
                                             viewModel.fetchMovements(it.toIntOrNull(), selectedOrder, selectedType)
                                         }
                                     },
-                                    label = { Text("Límite", fontSize = 10.sp) },
+                                    label = { Text(s.limit, fontSize = 10.sp) },
                                     modifier = Modifier.width(80.dp),
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     colors = appTextFieldColors(),
@@ -418,7 +415,7 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
                                 ) {
                                     Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Exportar PDF", fontSize = 12.sp)
+                                    Text(s.exportPdf, fontSize = 12.sp)
                                 }
                                 Button(
                                     onClick = {
@@ -431,7 +428,7 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
                                 ) {
                                     Icon(Icons.Default.TableChart, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Exportar CSV", fontSize = 12.sp)
+                                    Text(s.exportCsv, fontSize = 12.sp)
                                 }
                             }
                         }
@@ -441,7 +438,7 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
 
             item {
                 Text(
-                    "Movimientos Recientes", 
+                    s.recentMovements, 
                     fontWeight = FontWeight.Bold,
                     color = AppColors.Gray
                 )
@@ -449,7 +446,7 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
             }
 
             items(viewModel.movements, key = { it.id }) { movement ->
-                MovementItem(movement = movement)
+                MovementItem(movement = movement, viewModel = viewModel)
             }
         }
     }
@@ -461,16 +458,14 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Configurar Límite de Gasto", fontWeight = FontWeight.Bold, color = AppColors.Red)
-                    Text("Cuenta: ${limitType.replaceFirstChar { it.uppercase() }}", fontSize = 12.sp)
-                    if (limitType == "credito") {
-                        Text("(Máximo permitido: $5,000)", fontSize = 10.sp, color = AppColors.Gray)
-                    }
+                    Text(s.settings, fontWeight = FontWeight.Bold, color = AppColors.Red)
+                    Text("${limitType}", fontSize = 12.sp)
+                    
                     Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
                         value = limitValue,
                         onValueChange = { limitValue = it },
-                        label = { Text("Límite Mensual (0 para desactivar)") },
+                        label = { Text(s.limit) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = appTextFieldColors(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
@@ -479,10 +474,6 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
                     val parsedLimit = limitValue.toDoubleOrNull() ?: 0.0
                     val isInvalid = limitType == "credito" && parsedLimit > 5000.0
                     
-                    if (isInvalid) {
-                        Text("El límite no puede exceder los $5,000", color = AppColors.Red, fontSize = 10.sp)
-                    }
-
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = {
@@ -494,7 +485,7 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
                         colors = ButtonDefaults.buttonColors(containerColor = AppColors.Red),
                         enabled = !isInvalid
                     ) {
-                        Text("Guardar Límite", color = Color.White)
+                        Text(s.save, color = Color.White)
                     }
                 }
             }
@@ -504,6 +495,7 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
 
 @Composable
 fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Unit) {
+    val s = getAppStrings(viewModel)
     var destAccount by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -529,7 +521,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
             .padding(16.dp)
     ) {
         Text(
-            "Transferir a otros usuarios", 
+            s.transfers, 
             style = MaterialTheme.typography.titleLarge,
             color = AppColors.Red,
             fontWeight = FontWeight.Bold
@@ -546,7 +538,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 modifier = Modifier.weight(1f).padding(end = 4.dp)
             ) {
-                Text("Generar QR", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(s.generateQr, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Button(
                 onClick = {
@@ -560,7 +552,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 modifier = Modifier.weight(1f).padding(start = 4.dp)
             ) {
-                Text("Escanear", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(s.scan, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         
@@ -569,7 +561,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
         OutlinedTextField(
             value = destAccount,
             onValueChange = { destAccount = it },
-            label = { Text("Número de cuenta destino") },
+            label = { Text(s.destAccount) },
             modifier = Modifier.fillMaxWidth(),
             colors = appTextFieldColors(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -579,7 +571,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
         OutlinedTextField(
             value = amount,
             onValueChange = { amount = it },
-            label = { Text("Monto") },
+            label = { Text(s.amount) },
             modifier = Modifier.fillMaxWidth(),
             colors = appTextFieldColors(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -589,7 +581,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },
-            label = { Text("Concepto (Opcional)") },
+            label = { Text(s.concept) },
             modifier = Modifier.fillMaxWidth(),
             colors = appTextFieldColors(),
             singleLine = true
@@ -609,7 +601,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
             colors = ButtonDefaults.buttonColors(containerColor = AppColors.Red),
             enabled = !viewModel.isLoading
         ) {
-            Text("Transferir", color = Color.White)
+            Text(s.transfer, color = Color.White)
         }
     }
 
@@ -620,12 +612,12 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Datos para recibir transferencia", fontWeight = FontWeight.Bold, color = AppColors.Red)
+                    Text(s.generateQr, fontWeight = FontWeight.Bold, color = AppColors.Red)
                     Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
                         value = qrAmountInput,
                         onValueChange = { qrAmountInput = it },
-                        label = { Text("Monto a cobrar") },
+                        label = { Text(s.amount) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = appTextFieldColors(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
@@ -634,7 +626,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
                     OutlinedTextField(
                         value = qrConceptInput,
                         onValueChange = { qrConceptInput = it },
-                        label = { Text("Concepto (Opcional)") },
+                        label = { Text(s.concept) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = appTextFieldColors()
                     )
@@ -649,7 +641,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
                         colors = ButtonDefaults.buttonColors(containerColor = AppColors.Red),
                         enabled = qrAmountInput.toDoubleOrNull() != null && qrAmountInput.toDouble() > 0
                     ) {
-                        Text("Generar QR", color = Color.White)
+                        Text(s.generateQr, color = Color.White)
                     }
                 }
             }
@@ -666,7 +658,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
                     modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Código QR de Cobro", fontWeight = FontWeight.Bold, color = AppColors.Red)
+                    Text(s.generateQr, fontWeight = FontWeight.Bold, color = AppColors.Red)
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     viewModel.myQrData?.let { data ->
@@ -684,7 +676,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
                         qrBitmap?.let {
                             Image(
                                 bitmap = it.asImageBitmap(),
-                                contentDescription = "QR Generado",
+                                contentDescription = "QR",
                                 modifier = Modifier.size(200.dp)
                             )
                         }
@@ -696,7 +688,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     TextButton(onClick = { showGeneratedQr = false; qrAmountInput = ""; qrConceptInput = "" }) {
-                        Text("Cerrar", color = AppColors.Red)
+                        Text(s.cancel, color = AppColors.Red)
                     }
                 }
             }
@@ -718,7 +710,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
                             amount = decodedData.monto.toString()
                             description = decodedData.concepto
                         } catch (e: Exception) {
-                            Toast.makeText(context, "Error al procesar la fecha del QR", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show()
                         }
                     } else {
                         destAccount = scannedValue
@@ -733,6 +725,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServicesScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Unit) {
+    val s = getAppStrings(viewModel)
     var selectedService by remember { mutableStateOf("") }
     var reference by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
@@ -746,7 +739,7 @@ fun ServicesScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Uni
             .padding(16.dp)
     ) {
         Text(
-            "Pago de Servicios", 
+            s.payService, 
             style = MaterialTheme.typography.titleLarge,
             color = AppColors.Red,
             fontWeight = FontWeight.Bold
@@ -761,7 +754,7 @@ fun ServicesScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Uni
                 value = selectedService,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Seleccionar Servicio") },
+                label = { Text(s.services) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                 colors = appTextFieldColors()
@@ -787,7 +780,7 @@ fun ServicesScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Uni
         OutlinedTextField(
             value = reference,
             onValueChange = { reference = it },
-            label = { Text("Referencia / Contrato") },
+            label = { Text("Ref") },
             modifier = Modifier.fillMaxWidth(),
             colors = appTextFieldColors(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -797,7 +790,7 @@ fun ServicesScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Uni
         OutlinedTextField(
             value = amount,
             onValueChange = { amount = it },
-            label = { Text("Monto a pagar") },
+            label = { Text(s.amount) },
             modifier = Modifier.fillMaxWidth(),
             colors = appTextFieldColors(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -815,7 +808,7 @@ fun ServicesScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Uni
                 onCheckedChange = { usarCredito = it },
                 colors = CheckboxDefaults.colors(checkedColor = AppColors.Red)
             )
-            Text("Pagar con Tarjeta de Crédito", color = MaterialTheme.colorScheme.onBackground)
+            Text(s.creditCard, color = MaterialTheme.colorScheme.onBackground)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -832,7 +825,7 @@ fun ServicesScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Uni
             colors = ButtonDefaults.buttonColors(containerColor = AppColors.Red),
             enabled = !viewModel.isLoading && selectedService.isNotEmpty()
         ) {
-            Text("Realizar Pago", color = Color.White)
+            Text(s.enter, color = Color.White)
         }
     }
 }
@@ -843,6 +836,7 @@ fun PayCreditScreen(
     onAuthRequired: (() -> Unit) -> Unit,
     onPaymentSuccess: () -> Unit
 ) {
+    val s = getAppStrings(viewModel)
     var amount by remember { mutableStateOf("") }
     val creditAccount = remember(viewModel.accounts) { viewModel.accounts.find { it.tipo == "credito" } }
 
@@ -853,7 +847,7 @@ fun PayCreditScreen(
             .padding(16.dp)
     ) {
         Text(
-            "Pagar Tarjeta de Crédito", 
+            s.payDebt, 
             style = MaterialTheme.typography.titleLarge,
             color = AppColors.Red,
             fontWeight = FontWeight.Bold
@@ -861,14 +855,14 @@ fun PayCreditScreen(
         Spacer(modifier = Modifier.height(16.dp))
         
         creditAccount?.let {
-            Text("Deuda actual: $${it.deuda}", color = MaterialTheme.colorScheme.onBackground)
+            Text("$${it.deuda}", color = MaterialTheme.colorScheme.onBackground)
             Spacer(modifier = Modifier.height(8.dp))
         }
 
         OutlinedTextField(
             value = amount,
             onValueChange = { amount = it },
-            label = { Text("Monto a abonar") },
+            label = { Text(s.amount) },
             modifier = Modifier.fillMaxWidth(),
             colors = appTextFieldColors(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -890,7 +884,7 @@ fun PayCreditScreen(
             colors = ButtonDefaults.buttonColors(containerColor = AppColors.Red),
             enabled = !viewModel.isLoading
         ) {
-            Text("Pagar Deuda", color = Color.White)
+            Text(s.payDebt, color = Color.White)
         }
         
         viewModel.errorMessage?.let {
@@ -901,6 +895,7 @@ fun PayCreditScreen(
 
 @Composable
 fun ProfileScreen(viewModel: MainViewModel) {
+    val s = getAppStrings(viewModel)
     val context = LocalContext.current
     var nombre by remember { mutableStateOf(viewModel.user?.nombre ?: "") }
     var passwordActual by remember { mutableStateOf("") }
@@ -936,7 +931,7 @@ fun ProfileScreen(viewModel: MainViewModel) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            "Mi Perfil",
+            s.myProfile,
             style = MaterialTheme.typography.headlineMedium,
             color = AppColors.Red,
             fontWeight = FontWeight.Bold
@@ -986,19 +981,19 @@ fun ProfileScreen(viewModel: MainViewModel) {
         OutlinedTextField(
             value = nombre,
             onValueChange = { nombre = it },
-            label = { Text("Nombre Completo") },
+            label = { Text(s.name) },
             modifier = Modifier.fillMaxWidth(),
             colors = appTextFieldColors()
         )
         
         Spacer(modifier = Modifier.height(16.dp))
-        Text("Cambiar Contraseña", fontWeight = FontWeight.Bold, color = AppColors.Gray, modifier = Modifier.align(Alignment.Start))
+        Text(s.changePassword, fontWeight = FontWeight.Bold, color = AppColors.Gray, modifier = Modifier.align(Alignment.Start))
         Spacer(modifier = Modifier.height(8.dp))
         
         OutlinedTextField(
             value = passwordActual,
             onValueChange = { passwordActual = it },
-            label = { Text("Contraseña Actual") },
+            label = { Text(s.currentPassword) },
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),
             colors = appTextFieldColors()
@@ -1007,7 +1002,7 @@ fun ProfileScreen(viewModel: MainViewModel) {
         OutlinedTextField(
             value = passwordNueva,
             onValueChange = { passwordNueva = it },
-            label = { Text("Nueva Contraseña") },
+            label = { Text(s.newPassword) },
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),
             colors = appTextFieldColors()
@@ -1035,7 +1030,7 @@ fun ProfileScreen(viewModel: MainViewModel) {
             if (viewModel.isLoading) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
             } else {
-                Text("Guardar Cambios", color = Color.White)
+                Text(s.saveChanges, color = Color.White)
             }
         }
         
@@ -1045,7 +1040,7 @@ fun ProfileScreen(viewModel: MainViewModel) {
         
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            "Miembro desde: ${viewModel.user?.creadoEn?.split("T")?.get(0) ?: ""}",
+            "${s.memberSince}: ${viewModel.user?.creadoEn?.split("T")?.get(0) ?: ""}",
             fontSize = 12.sp,
             color = AppColors.Gray
         )
@@ -1109,8 +1104,10 @@ fun BranchesScreen() {
 
 @Composable
 fun SettingsScreen(viewModel: MainViewModel, onNavigateToProfile: () -> Unit) {
+    val s = getAppStrings(viewModel)
     val context = LocalContext.current
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showLangDialog by remember { mutableStateOf(false) }
     
     Column(
         modifier = Modifier
@@ -1120,7 +1117,7 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateToProfile: () -> Unit) {
             .verticalScroll(rememberScrollState())
     ) {
         Text(
-            "Configuración",
+            s.settings,
             style = MaterialTheme.typography.headlineMedium,
             color = AppColors.Red,
             fontWeight = FontWeight.Bold
@@ -1129,36 +1126,40 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateToProfile: () -> Unit) {
 
         SettingsItem(
             icon = Icons.Default.Person,
-            title = "Mi Perfil",
-            subtitle = "Edita tus datos personales y foto",
+            title = s.myProfile,
+            subtitle = s.saveChanges,
             onClick = onNavigateToProfile
         )
 
         SettingsItem(
             icon = Icons.Default.Brightness6,
-            title = "Tema",
+            title = s.theme,
             subtitle = when(viewModel.themeConfig) {
-                "light" -> "Claro"
-                "dark" -> "Oscuro"
-                else -> "Predeterminado del sistema"
+                "light" -> s.light
+                "dark" -> s.dark
+                else -> s.system
             },
             onClick = { showThemeDialog = true }
         )
 
         SettingsItem(
             icon = Icons.Default.Language,
-            title = "Idioma",
-            subtitle = "Español (Próximamente)",
-            onClick = { }
+            title = s.language,
+            subtitle = when(viewModel.languageConfig) {
+                "en" -> s.english
+                "pt" -> s.portuguese
+                else -> s.spanish
+            },
+            onClick = { showLangDialog = true }
         )
 
         SettingsItem(
             icon = Icons.Default.DeleteForever,
-            title = "Borrar Cuenta",
-            subtitle = "Eliminar tus datos permanentemente",
+            title = s.deleteAccount,
+            subtitle = s.deleteAccountWarning,
             iconColor = AppColors.Red,
             onClick = {
-                Toast.makeText(context, "Funcionalidad próximamente", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, s.comingSoon, Toast.LENGTH_SHORT).show()
             }
         )
 
@@ -1166,8 +1167,8 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateToProfile: () -> Unit) {
 
         SettingsItem(
             icon = Icons.Default.Description,
-            title = "Términos y Condiciones",
-            subtitle = "Consulta nuestra política legal",
+            title = s.terms,
+            subtitle = "",
             onClick = {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"))
                 context.startActivity(intent)
@@ -1178,20 +1179,44 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateToProfile: () -> Unit) {
     if (showThemeDialog) {
         AlertDialog(
             onDismissRequest = { showThemeDialog = false },
-            title = { Text("Seleccionar Tema") },
+            title = { Text(s.selectTheme) },
             text = {
                 Column {
-                    ThemeOption("Sistema", viewModel.themeConfig == "system") {
+                    ThemeOption(s.system, viewModel.themeConfig == "system") {
                         viewModel.updateThemeConfig("system")
                         showThemeDialog = false
                     }
-                    ThemeOption("Claro", viewModel.themeConfig == "light") {
+                    ThemeOption(s.light, viewModel.themeConfig == "light") {
                         viewModel.updateThemeConfig("light")
                         showThemeDialog = false
                     }
-                    ThemeOption("Oscuro", viewModel.themeConfig == "dark") {
+                    ThemeOption(s.dark, viewModel.themeConfig == "dark") {
                         viewModel.updateThemeConfig("dark")
                         showThemeDialog = false
+                    }
+                }
+            },
+            confirmButton = {}
+        )
+    }
+
+    if (showLangDialog) {
+        AlertDialog(
+            onDismissRequest = { showLangDialog = false },
+            title = { Text(s.selectLanguage) },
+            text = {
+                Column {
+                    ThemeOption(s.spanish, viewModel.languageConfig == "es") {
+                        viewModel.updateLanguageConfig("es")
+                        showLangDialog = false
+                    }
+                    ThemeOption(s.english, viewModel.languageConfig == "en") {
+                        viewModel.updateLanguageConfig("en")
+                        showLangDialog = false
+                    }
+                    ThemeOption(s.portuguese, viewModel.languageConfig == "pt") {
+                        viewModel.updateLanguageConfig("pt")
+                        showLangDialog = false
                     }
                 }
             },

@@ -44,7 +44,8 @@ class MainActivity : FragmentActivity() {
                         if (currentRoute != "login") {
                             BottomNavigationBar(
                                 currentRoute = currentRoute,
-                                onNavigate = { navController.navigate(it) }
+                                onNavigate = { navController.navigate(it) },
+                                viewModel = viewModel
                             )
                         }
                     }

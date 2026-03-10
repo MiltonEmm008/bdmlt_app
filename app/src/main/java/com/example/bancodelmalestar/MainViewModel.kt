@@ -31,6 +31,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var themeConfig by mutableStateOf(prefs.getString("theme_config", "system") ?: "system")
         private set
 
+    // Language state: "es", "en", "pt"
+    var languageConfig by mutableStateOf(prefs.getString("language_config", "es") ?: "es")
+        private set
+
     private var _apiService: ApiService? = null
     val apiService: ApiService
         get() {
@@ -68,6 +72,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun updateThemeConfig(config: String) {
         themeConfig = config
         prefs.edit().putString("theme_config", config).apply()
+    }
+
+    fun updateLanguageConfig(config: String) {
+        languageConfig = config
+        prefs.edit().putString("language_config", config).apply()
     }
 
     var token by mutableStateOf("")
