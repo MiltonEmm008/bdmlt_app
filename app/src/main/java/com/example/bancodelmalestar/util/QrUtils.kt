@@ -2,11 +2,11 @@ package com.example.bancodelmalestar.util
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.util.Base64
 import com.example.bancodelmalestar.data.model.QrTransferData
 import com.google.gson.Gson
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
-import java.util.Base64
 
 object QrUtils {
     private val gson = Gson()
@@ -31,12 +31,12 @@ object QrUtils {
 
     fun encodeQrData(data: QrTransferData): String {
         val json = gson.toJson(data)
-        return Base64.getEncoder().encodeToString(json.toByteArray())
+        return Base64.encodeToString(json.toByteArray(), Base64.DEFAULT)
     }
 
     fun decodeQrData(encoded: String): QrTransferData? {
         return try {
-            val decodedBytes = Base64.getDecoder().decode(encoded)
+            val decodedBytes = Base64.decode(encoded, Base64.DEFAULT)
             val json = String(decodedBytes)
             gson.fromJson(json, QrTransferData::class.java)
         } catch (e: Exception) {
