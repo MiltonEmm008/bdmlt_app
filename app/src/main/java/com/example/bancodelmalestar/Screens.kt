@@ -64,15 +64,13 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
     var confirmPassword by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
     
-    // Base URL dialog state
     var showUrlDialog by remember { mutableStateOf(false) }
     var tempUrl by remember { mutableStateOf(viewModel.BASE_URL) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(AppColors.White)
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -186,7 +184,6 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
             }
         }
 
-        // Settings Icon in the corner
         IconButton(
             onClick = { showUrlDialog = true },
             modifier = Modifier
@@ -259,19 +256,18 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
     PullToRefreshBox(
         isRefreshing = viewModel.isLoading,
         onRefresh = { viewModel.fetchInitialData() },
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
     ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(AppColors.LightGray)
                 .padding(16.dp)
         ) {
             item {
                 Text(
                     "Hola, ${viewModel.user?.nombre ?: ""}", 
                     style = MaterialTheme.typography.headlineSmall,
-                    color = AppColors.Black
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -342,7 +338,7 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
                 AnimatedVisibility(visible = showFilters) {
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                        colors = CardDefaults.cardColors(containerColor = AppColors.White),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -462,7 +458,7 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
         Dialog(onDismissRequest = { showLimitDialog = false }) {
             Card(
                 modifier = Modifier.padding(16.dp),
-                colors = CardDefaults.cardColors(containerColor = AppColors.White)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Configurar Límite de Gasto", fontWeight = FontWeight.Bold, color = AppColors.Red)
@@ -529,7 +525,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.White)
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
     ) {
         Text(
@@ -547,10 +543,10 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
                         showQrInputDialog = true
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = AppColors.LightGray),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 modifier = Modifier.weight(1f).padding(end = 4.dp)
             ) {
-                Text("Generar QR", color = AppColors.Black)
+                Text("Generar QR", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Button(
                 onClick = {
@@ -561,10 +557,10 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
                         permissionLauncher.launch(Manifest.permission.CAMERA)
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = AppColors.LightGray),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 modifier = Modifier.weight(1f).padding(start = 4.dp)
             ) {
-                Text("Escanear", color = AppColors.Black)
+                Text("Escanear", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         
@@ -621,7 +617,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
         Dialog(onDismissRequest = { showQrInputDialog = false }) {
             Card(
                 modifier = Modifier.padding(16.dp),
-                colors = CardDefaults.cardColors(containerColor = AppColors.White)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Datos para recibir transferencia", fontWeight = FontWeight.Bold, color = AppColors.Red)
@@ -664,7 +660,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
         Dialog(onDismissRequest = { showGeneratedQr = false; qrAmountInput = ""; qrConceptInput = "" }) {
             Card(
                 modifier = Modifier.padding(16.dp),
-                colors = CardDefaults.cardColors(containerColor = AppColors.White)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -693,7 +689,7 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(data.nombre, color = AppColors.Black)
+                        Text(data.nombre, color = MaterialTheme.colorScheme.onSurface)
                         Text("$${qrAmountInput}", fontWeight = FontWeight.Bold, color = AppColors.Red)
                         if (qrConceptInput.isNotEmpty()) Text(qrConceptInput, color = AppColors.Gray)
                     } ?: CircularProgressIndicator(color = AppColors.Red)
@@ -718,24 +714,13 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
                             val qrDate = sdf.parse(decodedData.fecha)
                             val now = Date()
                             
-                            val diffMinutes = (now.time - (qrDate?.time ?: 0)) / (60 * 1000)
-
                             destAccount = decodedData.numero_cuenta
                             amount = decodedData.monto.toString()
                             description = decodedData.concepto
-                            
-//                            if (diffMinutes <= 10) {
-//                                destAccount = decodedData.numero_cuenta
-//                                amount = decodedData.monto.toString()
-//                                description = decodedData.concepto
-//                            } else {
-//                                Toast.makeText(context, "El código QR ha expirado (más de 10 min)", Toast.LENGTH_LONG).show()
-//                            }
                         } catch (e: Exception) {
                             Toast.makeText(context, "Error al procesar la fecha del QR", Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        // Si no es un JSON de transferencia, tal vez es solo el número de cuenta
                         destAccount = scannedValue
                     }
                     showScanner = false
@@ -757,7 +742,7 @@ fun ServicesScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Uni
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.White)
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
     ) {
         Text(
@@ -784,11 +769,11 @@ fun ServicesScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Uni
             ExposedDropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
-                modifier = Modifier.background(AppColors.White)
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
             ) {
                 viewModel.servicesAvailable.forEach { service ->
                     DropdownMenuItem(
-                        text = { Text(service.servicio, color = AppColors.Black) },
+                        text = { Text(service.servicio, color = MaterialTheme.colorScheme.onSurface) },
                         onClick = {
                             selectedService = service.servicio
                             expanded = false
@@ -830,7 +815,7 @@ fun ServicesScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Uni
                 onCheckedChange = { usarCredito = it },
                 colors = CheckboxDefaults.colors(checkedColor = AppColors.Red)
             )
-            Text("Pagar con Tarjeta de Crédito", color = AppColors.Black)
+            Text("Pagar con Tarjeta de Crédito", color = MaterialTheme.colorScheme.onBackground)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -864,7 +849,7 @@ fun PayCreditScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.White)
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
     ) {
         Text(
@@ -876,7 +861,7 @@ fun PayCreditScreen(
         Spacer(modifier = Modifier.height(16.dp))
         
         creditAccount?.let {
-            Text("Deuda actual: $${it.deuda}", color = AppColors.Black)
+            Text("Deuda actual: $${it.deuda}", color = MaterialTheme.colorScheme.onBackground)
             Spacer(modifier = Modifier.height(8.dp))
         }
 
@@ -945,7 +930,7 @@ fun ProfileScreen(viewModel: MainViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.White)
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -1070,8 +1055,6 @@ fun ProfileScreen(viewModel: MainViewModel) {
 @Composable
 fun BranchesScreen() {
     val tepicCenter = GeoPoint(21.5042, -104.8947)
-    
-    // Fixed points provided
     val points = remember {
         listOf(
             Triple("Sucursal La Cantera", 21.4879679, -104.8318394),
@@ -1081,14 +1064,10 @@ fun BranchesScreen() {
             Triple("Sucursal Cecy", 21.4784741, -104.8541761)
         )
     }
-
-    // Tepic Bounding Box (roughly)
     val tepicBbox = remember {
         BoundingBox(21.55, -104.78, 21.42, -104.95)
     }
-
     val lifecycleOwner = LocalLifecycleOwner.current
-    val context = LocalContext.current
     
     AndroidView(
         factory = { ctx ->
@@ -1097,24 +1076,18 @@ fun BranchesScreen() {
                 controller.setZoom(14.5)
                 controller.setCenter(tepicCenter)
                 setMultiTouchControls(true)
-                
-                // Limits
                 minZoomLevel = 13.0
                 maxZoomLevel = 18.0
                 setScrollableAreaLimitDouble(tepicBbox)
-                
                 points.forEach { (name, lat, lon) ->
                     val marker = Marker(this)
                     marker.position = GeoPoint(lat, lon)
                     marker.title = name
                     marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                    
-                    // Use custom icon banco_mapa.png
                     val iconDrawable = ContextCompat.getDrawable(ctx, R.drawable.banco_mapa)
                     if (iconDrawable != null) {
                         marker.icon = iconDrawable
                     }
-                    
                     overlays.add(marker)
                 }
             }
@@ -1126,7 +1099,7 @@ fun BranchesScreen() {
     )
     
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event -> }
+        val observer = LifecycleEventObserver { _, _ -> }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
@@ -1137,11 +1110,12 @@ fun BranchesScreen() {
 @Composable
 fun SettingsScreen(viewModel: MainViewModel) {
     val context = LocalContext.current
+    var showThemeDialog by remember { mutableStateOf(false) }
     
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.White)
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
@@ -1153,15 +1127,17 @@ fun SettingsScreen(viewModel: MainViewModel) {
         )
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Theme Option
         SettingsItem(
             icon = Icons.Default.Brightness6,
             title = "Tema",
-            subtitle = "Claro / Oscuro (Próximamente)",
-            onClick = { }
+            subtitle = when(viewModel.themeConfig) {
+                "light" -> "Claro"
+                "dark" -> "Oscuro"
+                else -> "Predeterminado del sistema"
+            },
+            onClick = { showThemeDialog = true }
         )
 
-        // Language Option
         SettingsItem(
             icon = Icons.Default.Language,
             title = "Idioma",
@@ -1169,7 +1145,6 @@ fun SettingsScreen(viewModel: MainViewModel) {
             onClick = { }
         )
 
-        // Delete Account
         SettingsItem(
             icon = Icons.Default.DeleteForever,
             title = "Borrar Cuenta",
@@ -1180,9 +1155,8 @@ fun SettingsScreen(viewModel: MainViewModel) {
             }
         )
 
-        Divider(modifier = Modifier.padding(vertical = 16.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
-        // Terms and Conditions
         SettingsItem(
             icon = Icons.Default.Description,
             title = "Términos y Condiciones",
@@ -1193,6 +1167,45 @@ fun SettingsScreen(viewModel: MainViewModel) {
             }
         )
     }
+
+    if (showThemeDialog) {
+        AlertDialog(
+            onDismissRequest = { showThemeDialog = false },
+            title = { Text("Seleccionar Tema") },
+            text = {
+                Column {
+                    ThemeOption("Sistema", viewModel.themeConfig == "system") {
+                        viewModel.updateThemeConfig("system")
+                        showThemeDialog = false
+                    }
+                    ThemeOption("Claro", viewModel.themeConfig == "light") {
+                        viewModel.updateThemeConfig("light")
+                        showThemeDialog = false
+                    }
+                    ThemeOption("Oscuro", viewModel.themeConfig == "dark") {
+                        viewModel.updateThemeConfig("dark")
+                        showThemeDialog = false
+                    }
+                }
+            },
+            confirmButton = {}
+        )
+    }
+}
+
+@Composable
+fun ThemeOption(text: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = onClick, colors = RadioButtonDefaults.colors(selectedColor = AppColors.Red))
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text, color = MaterialTheme.colorScheme.onSurface)
+    }
 }
 
 @Composable
@@ -1200,7 +1213,7 @@ fun SettingsItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
-    iconColor: Color = AppColors.Black,
+    iconColor: Color = MaterialTheme.colorScheme.onSurface,
     onClick: () -> Unit
 ) {
     Row(
@@ -1213,7 +1226,7 @@ fun SettingsItem(
         Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(28.dp))
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Bold, color = AppColors.Black)
+            Text(title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
             Text(subtitle, fontSize = 12.sp, color = AppColors.Gray)
         }
         Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = AppColors.Gray, modifier = Modifier.size(16.dp))

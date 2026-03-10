@@ -27,6 +27,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var BASE_URL by mutableStateOf(prefs.getString("base_url", "http://10.223.4.143:3000/") ?: "http://10.223.4.143:3000/")
         private set
 
+    // Theme state: "system", "light", "dark"
+    var themeConfig by mutableStateOf(prefs.getString("theme_config", "system") ?: "system")
+        private set
+
     private var _apiService: ApiService? = null
     val apiService: ApiService
         get() {
@@ -59,6 +63,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         BASE_URL = formattedUrl
         prefs.edit().putString("base_url", formattedUrl).apply()
         _apiService = null
+    }
+
+    fun updateThemeConfig(config: String) {
+        themeConfig = config
+        prefs.edit().putString("theme_config", config).apply()
     }
 
     var token by mutableStateOf("")

@@ -2,6 +2,7 @@ package com.example.bancodelmalestar
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,30 +30,80 @@ import java.util.Locale
 
 object AppColors {
     val Red = Color(0xFFD32F2F)
+    val DarkRed = Color(0xFFB71C1C)
     val Green = Color(0xFF388E3C)
     val Gray = Color(0xFF757575)
     val LightGray = Color(0xFFF5F5F5)
     val White = Color(0xFFFFFFFF)
     val Black = Color(0xFF212121)
-    val HeaderBg = Color(0xFFEEEEEE)
+    val HeaderBgLight = Color(0xFFEEEEEE)
+    val HeaderBgDark = Color(0xFF1A1A1A)
+    val SurfaceDark = Color(0xFF121212)
+    val CardDark = Color(0xFF1E1E1E)
+}
+
+@Composable
+@ReadOnlyComposable
+fun isAppDarkTheme(viewModel: MainViewModel): Boolean {
+    return when (viewModel.themeConfig) {
+        "light" -> false
+        "dark" -> true
+        else -> isSystemInDarkTheme()
+    }
+}
+
+@Composable
+fun BancoDelMalestarTheme(
+    viewModel: MainViewModel,
+    content: @Composable () -> Unit
+) {
+    val darkTheme = isAppDarkTheme(viewModel)
+    val colorScheme = if (darkTheme) {
+        darkColorScheme(
+            primary = AppColors.Red,
+            secondary = AppColors.Gray,
+            background = AppColors.SurfaceDark,
+            surface = AppColors.CardDark,
+            onPrimary = Color.White,
+            onBackground = Color.White,
+            onSurface = Color.White
+        )
+    } else {
+        lightColorScheme(
+            primary = AppColors.Red,
+            secondary = AppColors.Gray,
+            background = AppColors.LightGray,
+            surface = AppColors.White,
+            onPrimary = Color.White,
+            onBackground = AppColors.Black,
+            onSurface = AppColors.Black
+        )
+    }
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        content = content
+    )
 }
 
 @Composable
 fun appTextFieldColors(): TextFieldColors {
+    val isDark = isSystemInDarkTheme() // This is a bit tricky if we want to follow viewModel, but MaterialTheme.colorScheme is better
     return OutlinedTextFieldDefaults.colors(
         focusedBorderColor = AppColors.Red,
-        unfocusedBorderColor = AppColors.Gray,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
         focusedLabelColor = AppColors.Red,
-        unfocusedLabelColor = AppColors.Gray,
+        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
         cursorColor = AppColors.Red,
-        focusedTextColor = AppColors.Black,
-        unfocusedTextColor = AppColors.Black
+        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppHeader(onLogout: () -> Unit) {
+fun AppHeader(onLogout: () -> Unit, viewModel: MainViewModel) {
+    val isDark = isAppDarkTheme(viewModel)
     TopAppBar(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -64,7 +116,7 @@ fun AppHeader(onLogout: () -> Unit) {
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     "BDMLT",
-                    color = AppColors.Black,
+                    color = if (isDark) Color.White else AppColors.Black,
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
                 )
@@ -80,7 +132,7 @@ fun AppHeader(onLogout: () -> Unit) {
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = AppColors.HeaderBg
+            containerColor = if (isDark) AppColors.HeaderBgDark else AppColors.HeaderBgLight
         )
     )
 }
@@ -91,7 +143,7 @@ fun BottomNavigationBar(
     onNavigate: (String) -> Unit
 ) {
     NavigationBar(
-        containerColor = AppColors.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 8.dp
     ) {
         val items = remember {
@@ -114,7 +166,7 @@ fun BottomNavigationBar(
                     selectedIconColor = AppColors.Red,
                     unselectedIconColor = AppColors.Gray,
                     selectedTextColor = AppColors.Red,
-                    indicatorColor = AppColors.LightGray
+                    indicatorColor = AppColors.Red.copy(alpha = 0.1f)
                 )
             )
         }
@@ -134,7 +186,6 @@ fun PhysicalCard(number: String, isCredit: Boolean) {
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // White line above middle
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -143,7 +194,6 @@ fun PhysicalCard(number: String, isCredit: Boolean) {
                     .background(Color.White.copy(alpha = 0.8f))
             )
 
-            // Number bottom left
             Text(
                 text = number.chunked(4).joinToString(" "),
                 modifier = Modifier
@@ -155,7 +205,6 @@ fun PhysicalCard(number: String, isCredit: Boolean) {
                 letterSpacing = 2.sp
             )
 
-            // Logo bottom right
             Image(
                 painter = painterResource(id = R.drawable.logo_banco),
                 contentDescription = null,
@@ -186,7 +235,7 @@ fun CardAccount(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = AppColors.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -214,7 +263,7 @@ fun CardAccount(
                 amountText,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = AppColors.Black
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             if (spendingLimit != null && spendingLimit.limiteGastoMensual > 0) {
@@ -224,7 +273,7 @@ fun CardAccount(
                     progress = { progress.coerceIn(0f, 1f) },
                     modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                     color = if (progress > 0.9f) AppColors.Red else AppColors.Green,
-                    trackColor = AppColors.LightGray
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
@@ -271,7 +320,7 @@ fun MovementItem(movement: Movement) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = AppColors.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -285,7 +334,7 @@ fun MovementItem(movement: Movement) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     movement.descripcion,
-                    color = AppColors.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp
                 )
