@@ -1,6 +1,7 @@
 package com.example.bancodelmalestar
 
 import android.app.Application
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -21,9 +22,21 @@ import java.util.concurrent.TimeUnit
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val context = application.applicationContext
-    val BASE_URL = "http://192.168.100.25:3000/"
+    private val prefs = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+    
+    var BASE_URL by mutableStateOf(prefs.getString("base_url", "http://10.223.4.143:3000/") ?: "http://10.223.4.143:3000/")
+        private set
 
-    private val apiService: ApiService by lazy {
+    private var _apiService: ApiService? = null
+    val apiService: ApiService
+        get() {
+            if (_apiService == null) {
+                _apiService = createApiService(BASE_URL)
+            }
+            return _apiService!!
+        }
+
+    private fun createApiService(url: String): ApiService {
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.NONE
         }
@@ -33,12 +46,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             .readTimeout(10, TimeUnit.SECONDS)
             .build()
 
-        Retrofit.Builder()
-            .baseUrl(BASE_URL)
+        return Retrofit.Builder()
+            .baseUrl(url)
             .addConverterFactory(GsonConverterFactory.create())
             .client(client)
             .build()
             .create(ApiService::class.java)
+    }
+
+    fun updateBaseUrl(newUrl: String) {
+        val formattedUrl = if (newUrl.endsWith("/")) newUrl else "$newUrl/"
+        BASE_URL = formattedUrl
+        prefs.edit().putString("base_url", formattedUrl).apply()
+        _apiService = null
     }
 
     var token by mutableStateOf("")

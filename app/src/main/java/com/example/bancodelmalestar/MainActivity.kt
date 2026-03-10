@@ -29,18 +29,23 @@ class MainActivity : FragmentActivity() {
             val currentRoute = navBackStackEntry?.destination?.route ?: "login"
 
             Scaffold(
-                topBar = { if (currentRoute != "login") AppHeader() },
+                topBar = { 
+                    if (currentRoute != "login") {
+                        AppHeader(onLogout = {
+                            viewModel.logout()
+                            navController.navigate("login") {
+                                popUpTo(navController.graph.id) {
+                                    inclusive = true
+                                }
+                            }
+                        })
+                    } 
+                },
                 bottomBar = {
                     if (currentRoute != "login") {
                         BottomNavigationBar(
                             currentRoute = currentRoute,
-                            onNavigate = { navController.navigate(it) },
-                            onLogout = {
-                                viewModel.logout()
-                                navController.navigate("login") {
-                                    popUpTo(0)
-                                }
-                            }
+                            onNavigate = { navController.navigate(it) }
                         )
                     }
                 }
@@ -77,6 +82,9 @@ class MainActivity : FragmentActivity() {
                     }
                     composable("branches") {
                         BranchesScreen()
+                    }
+                    composable("settings") {
+                        SettingsScreen(viewModel)
                     }
                     composable("pay_credit") {
                         PayCreditScreen(viewModel, { onAuth ->

@@ -1,6 +1,7 @@
 package com.example.bancodelmalestar
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
@@ -20,8 +21,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,122 +63,172 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
+    
+    // Base URL dialog state
+    var showUrlDialog by remember { mutableStateOf(false) }
+    var tempUrl by remember { mutableStateOf(viewModel.BASE_URL) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(AppColors.White)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Image(
-            painter = painterResource(id = R.drawable.logo_banco),
-            contentDescription = "Logo BDMLT",
-            modifier = Modifier.size(100.dp),
-            contentScale = ContentScale.Fit
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = if (isRegister) "Registro BDMLT" else "Bienvenido a BDMLT",
-            style = MaterialTheme.typography.headlineSmall,
-            color = AppColors.Red,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(24.dp))
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AppColors.White)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.logo_banco),
+                contentDescription = "Logo BDMLT",
+                modifier = Modifier.size(100.dp),
+                contentScale = ContentScale.Fit
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = if (isRegister) "Registro BDMLT" else "Bienvenido a BDMLT",
+                style = MaterialTheme.typography.headlineSmall,
+                color = AppColors.Red,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(24.dp))
 
-        if (isRegister) {
+            if (isRegister) {
+                OutlinedTextField(
+                    value = nombre,
+                    onValueChange = { nombre = it; localError = null },
+                    label = { Text("Nombre Completo") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = appTextFieldColors(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
             OutlinedTextField(
-                value = nombre,
-                onValueChange = { nombre = it; localError = null },
-                label = { Text("Nombre Completo") },
+                value = email,
+                onValueChange = { email = it; localError = null },
+                label = { Text("Correo Electrónico") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = appTextFieldColors(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 singleLine = true
             )
             Spacer(modifier = Modifier.height(8.dp))
-        }
 
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it; localError = null },
-            label = { Text("Correo Electrónico") },
-            modifier = Modifier.fillMaxWidth(),
-            colors = appTextFieldColors(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            singleLine = true
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it; localError = null },
-            label = { Text("Contraseña") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth(),
-            colors = appTextFieldColors(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            singleLine = true
-        )
-
-        if (isRegister) {
-            Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
-                value = confirmPassword,
-                onValueChange = { confirmPassword = it; localError = null },
-                label = { Text("Confirmar Contraseña") },
+                value = password,
+                onValueChange = { password = it; localError = null },
+                label = { Text("Contraseña") },
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
                 colors = appTextFieldColors(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true
             )
-        }
-        
-        val displayError = localError ?: viewModel.errorMessage
-        displayError?.let {
-            Text(it, color = AppColors.Red, modifier = Modifier.padding(top = 8.dp))
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+            if (isRegister) {
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it; localError = null },
+                    label = { Text("Confirmar Contraseña") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = appTextFieldColors(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true
+                )
+            }
+            
+            val displayError = localError ?: viewModel.errorMessage
+            displayError?.let {
+                Text(it, color = AppColors.Red, modifier = Modifier.padding(top = 8.dp))
+            }
 
-        Button(
-            onClick = {
-                if (isRegister) {
-                    if (password != confirmPassword) {
-                        localError = "Las contraseñas no coinciden"
-                    } else if (password.length < 6) {
-                        localError = "La contraseña debe tener al menos 6 caracteres"
-                    } else if (nombre.isBlank() || email.isBlank()) {
-                        localError = "Todos los campos son obligatorios"
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = {
+                    if (isRegister) {
+                        if (password != confirmPassword) {
+                            localError = "Las contraseñas no coinciden"
+                        } else if (password.length < 6) {
+                            localError = "La contraseña debe tener al menos 6 caracteres"
+                        } else if (nombre.isBlank() || email.isBlank()) {
+                            localError = "Todos los campos son obligatorios"
+                        } else {
+                            viewModel.register(nombre, email, password, onLoginSuccess)
+                        }
                     } else {
-                        viewModel.register(nombre, email, password, onLoginSuccess)
+                        viewModel.login(email, password, onLoginSuccess)
                     }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = AppColors.Red),
+                enabled = !viewModel.isLoading
+            ) {
+                if (viewModel.isLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                 } else {
-                    viewModel.login(email, password, onLoginSuccess)
+                    Text(if (isRegister) "Registrar" else "Entrar", color = Color.White)
                 }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = AppColors.Red),
-            enabled = !viewModel.isLoading
-        ) {
-            if (viewModel.isLoading) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-            } else {
-                Text(if (isRegister) "Registrar" else "Entrar", color = Color.White)
+            }
+
+            TextButton(onClick = { 
+                isRegister = !isRegister
+                localError = null
+                confirmPassword = ""
+            }) {
+                Text(
+                    if (isRegister) "¿Ya tienes cuenta? Inicia sesión" else "¿No tienes cuenta? Regístrate",
+                    color = AppColors.Gray
+                )
             }
         }
 
-        TextButton(onClick = { 
-            isRegister = !isRegister
-            localError = null
-            confirmPassword = ""
-        }) {
-            Text(
-                if (isRegister) "¿Ya tienes cuenta? Inicia sesión" else "¿No tienes cuenta? Regístrate",
-                color = AppColors.Gray
-            )
+        // Settings Icon in the corner
+        IconButton(
+            onClick = { showUrlDialog = true },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(8.dp)
+        ) {
+            Icon(Icons.Default.Settings, contentDescription = "Configurar URL", tint = AppColors.Gray)
         }
+    }
+
+    if (showUrlDialog) {
+        AlertDialog(
+            onDismissRequest = { showUrlDialog = false },
+            title = { Text("Configurar URL Base") },
+            text = {
+                Column {
+                    Text("Dirección actual: ${viewModel.BASE_URL}", fontSize = 12.sp, color = AppColors.Gray)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = tempUrl,
+                        onValueChange = { tempUrl = it },
+                        label = { Text("Nueva URL (ej: http://192.168.1.5:3000)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = appTextFieldColors(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.updateBaseUrl(tempUrl)
+                    showUrlDialog = false
+                }) {
+                    Text("Guardar", color = AppColors.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUrlDialog = false }) {
+                    Text("Cancelar", color = AppColors.Gray)
+                }
+            }
+        )
     }
 }
 
@@ -203,199 +256,205 @@ fun HomeScreen(viewModel: MainViewModel, onPayCreditClick: () -> Unit) {
         "Depósito" to "deposito"
     )
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(AppColors.LightGray)
-            .padding(16.dp)
+    PullToRefreshBox(
+        isRefreshing = viewModel.isLoading,
+        onRefresh = { viewModel.fetchInitialData() },
+        modifier = Modifier.fillMaxSize()
     ) {
-        item {
-            Text(
-                "Hola, ${viewModel.user?.nombre ?: ""}", 
-                style = MaterialTheme.typography.headlineSmall,
-                color = AppColors.Black
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        item {
-            debit?.let {
-                val limitInfo = viewModel.spendingLimits.find { l -> l.tipo == "debito" }
-                CardAccount(
-                    title = "Cuenta de Débito", 
-                    number = it.numero, 
-                    amount = it.saldo,
-                    spendingLimit = limitInfo,
-                    onSetLimit = { 
-                        limitType = "debito"
-                        limitValue = limitInfo?.limiteGastoMensual?.toString() ?: "0"
-                        showLimitDialog = true 
-                    }
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AppColors.LightGray)
+                .padding(16.dp)
+        ) {
+            item {
+                Text(
+                    "Hola, ${viewModel.user?.nombre ?: ""}", 
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = AppColors.Black
                 )
+                Spacer(modifier = Modifier.height(16.dp))
             }
-        }
 
-        item {
-            credit?.let {
-                val limitInfo = viewModel.spendingLimits.find { l -> l.tipo == "credito" }
-                CardAccount(
-                    title = "Tarjeta de Crédito",
-                    number = it.numero,
-                    amount = it.deuda,
-                    isCredit = true,
-                    limit = it.limiteCredito,
-                    onPayCredit = onPayCreditClick,
-                    spendingLimit = limitInfo,
-                    onSetLimit = {
-                        limitType = "credito"
-                        limitValue = limitInfo?.limiteGastoMensual?.toString() ?: "0"
-                        showLimitDialog = true
-                    }
-                )
-            }
-        }
-
-        item {
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showFilters = !showFilters }
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.FilterList, contentDescription = null, tint = AppColors.Red)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "Filtros de Movimientos",
-                        fontWeight = FontWeight.Bold,
-                        color = AppColors.Red
+            item {
+                debit?.let {
+                    val limitInfo = viewModel.spendingLimits.find { l -> l.tipo == "debito" }
+                    CardAccount(
+                        title = "Cuenta de Débito", 
+                        number = it.numero, 
+                        amount = it.saldo,
+                        spendingLimit = limitInfo,
+                        onSetLimit = { 
+                            limitType = "debito"
+                            limitValue = limitInfo?.limiteGastoMensual?.toString() ?: "0"
+                            showLimitDialog = true 
+                        }
                     )
                 }
-                Icon(
-                    if (showFilters) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = AppColors.Red
-                )
             }
-            
-            AnimatedVisibility(visible = showFilters) {
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                    colors = CardDefaults.cardColors(containerColor = AppColors.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Tipo de movimiento:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            types.forEach { (label, value) ->
-                                FilterChip(
-                                    selected = selectedType == value,
-                                    onClick = { 
-                                        selectedType = value
-                                        viewModel.fetchMovements(limit.toIntOrNull(), selectedOrder, selectedType)
-                                    },
-                                    label = { Text(label, fontSize = 10.sp) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = AppColors.Red,
-                                        selectedLabelColor = Color.White
-                                    )
-                                )
-                            }
+
+            item {
+                credit?.let {
+                    val limitInfo = viewModel.spendingLimits.find { l -> l.tipo == "credito" }
+                    CardAccount(
+                        title = "Tarjeta de Crédito",
+                        number = it.numero,
+                        amount = it.deuda,
+                        isCredit = true,
+                        limit = it.limiteCredito,
+                        onPayCredit = onPayCreditClick,
+                        spendingLimit = limitInfo,
+                        onSetLimit = {
+                            limitType = "credito"
+                            limitValue = limitInfo?.limiteGastoMensual?.toString() ?: "0"
+                            showLimitDialog = true
                         }
-                        
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Orden:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    RadioButton(
-                                        selected = selectedOrder == "desc",
+                    )
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showFilters = !showFilters }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.FilterList, contentDescription = null, tint = AppColors.Red)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Filtros de Movimientos",
+                            fontWeight = FontWeight.Bold,
+                            color = AppColors.Red
+                        )
+                    }
+                    Icon(
+                        if (showFilters) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = AppColors.Red
+                    )
+                }
+                
+                AnimatedVisibility(visible = showFilters) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        colors = CardDefaults.cardColors(containerColor = AppColors.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("Tipo de movimiento:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                types.forEach { (label, value) ->
+                                    FilterChip(
+                                        selected = selectedType == value,
                                         onClick = { 
-                                            selectedOrder = "desc"
+                                            selectedType = value
                                             viewModel.fetchMovements(limit.toIntOrNull(), selectedOrder, selectedType)
                                         },
-                                        colors = RadioButtonDefaults.colors(selectedColor = AppColors.Red)
+                                        label = { Text(label, fontSize = 10.sp) },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = AppColors.Red,
+                                            selectedLabelColor = Color.White
+                                        )
                                     )
-                                    Text("Recientes", fontSize = 12.sp)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    RadioButton(
-                                        selected = selectedOrder == "asc",
-                                        onClick = { 
-                                            selectedOrder = "asc"
-                                            viewModel.fetchMovements(limit.toIntOrNull(), selectedOrder, selectedType)
-                                        },
-                                        colors = RadioButtonDefaults.colors(selectedColor = AppColors.Red)
-                                    )
-                                    Text("Antiguos", fontSize = 12.sp)
                                 }
                             }
                             
-                            OutlinedTextField(
-                                value = limit,
-                                onValueChange = { 
-                                    limit = it
-                                    if (it.isNotEmpty()) {
-                                        viewModel.fetchMovements(it.toIntOrNull(), selectedOrder, selectedType)
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Orden:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        RadioButton(
+                                            selected = selectedOrder == "desc",
+                                            onClick = { 
+                                                selectedOrder = "desc"
+                                                viewModel.fetchMovements(limit.toIntOrNull(), selectedOrder, selectedType)
+                                            },
+                                            colors = RadioButtonDefaults.colors(selectedColor = AppColors.Red)
+                                        )
+                                        Text("Recientes", fontSize = 12.sp)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        RadioButton(
+                                            selected = selectedOrder == "asc",
+                                            onClick = { 
+                                                selectedOrder = "asc"
+                                                viewModel.fetchMovements(limit.toIntOrNull(), selectedOrder, selectedType)
+                                            },
+                                            colors = RadioButtonDefaults.colors(selectedColor = AppColors.Red)
+                                        )
+                                        Text("Antiguos", fontSize = 12.sp)
                                     }
-                                },
-                                label = { Text("Límite", fontSize = 10.sp) },
-                                modifier = Modifier.width(80.dp),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                colors = appTextFieldColors(),
-                                singleLine = true
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(
-                                onClick = {
-                                    viewModel.user?.let { u ->
-                                        ExportUtils.generateMovementsPdf(context, u, viewModel.accounts, viewModel.movements)
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(containerColor = AppColors.Red)
-                            ) {
-                                Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Exportar PDF", fontSize = 12.sp)
+                                }
+                                
+                                OutlinedTextField(
+                                    value = limit,
+                                    onValueChange = { 
+                                        limit = it
+                                        if (it.isNotEmpty()) {
+                                            viewModel.fetchMovements(it.toIntOrNull(), selectedOrder, selectedType)
+                                        }
+                                    },
+                                    label = { Text("Límite", fontSize = 10.sp) },
+                                    modifier = Modifier.width(80.dp),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    colors = appTextFieldColors(),
+                                    singleLine = true
+                                )
                             }
-                            Button(
-                                onClick = {
-                                    viewModel.user?.let { u ->
-                                        ExportUtils.generateMovementsCsv(context, u, viewModel.movements)
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(containerColor = AppColors.Gray)
+
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(Icons.Default.TableChart, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Exportar CSV", fontSize = 12.sp)
+                                Button(
+                                    onClick = {
+                                        viewModel.user?.let { u ->
+                                            ExportUtils.generateMovementsPdf(context, u, viewModel.accounts, viewModel.movements)
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.Red)
+                                ) {
+                                    Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Exportar PDF", fontSize = 12.sp)
+                                }
+                                Button(
+                                    onClick = {
+                                        viewModel.user?.let { u ->
+                                            ExportUtils.generateMovementsCsv(context, u, viewModel.movements)
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.Gray)
+                                ) {
+                                    Icon(Icons.Default.TableChart, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Exportar CSV", fontSize = 12.sp)
+                                }
                             }
                         }
                     }
                 }
             }
-        }
 
-        item {
-            Text(
-                "Movimientos Recientes", 
-                fontWeight = FontWeight.Bold,
-                color = AppColors.Gray
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-        }
+            item {
+                Text(
+                    "Movimientos Recientes", 
+                    fontWeight = FontWeight.Bold,
+                    color = AppColors.Gray
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
-        items(viewModel.movements, key = { it.id }) { movement ->
-            MovementItem(movement = movement)
+            items(viewModel.movements, key = { it.id }) { movement ->
+                MovementItem(movement = movement)
+            }
         }
     }
 
@@ -660,14 +719,18 @@ fun TransfersScreen(viewModel: MainViewModel, onAuthRequired: (() -> Unit) -> Un
                             val now = Date()
                             
                             val diffMinutes = (now.time - (qrDate?.time ?: 0)) / (60 * 1000)
+
+                            destAccount = decodedData.numero_cuenta
+                            amount = decodedData.monto.toString()
+                            description = decodedData.concepto
                             
-                            if (diffMinutes <= 10) {
-                                destAccount = decodedData.numero_cuenta
-                                amount = decodedData.monto.toString()
-                                description = decodedData.concepto
-                            } else {
-                                Toast.makeText(context, "El código QR ha expirado (más de 10 min)", Toast.LENGTH_LONG).show()
-                            }
+//                            if (diffMinutes <= 10) {
+//                                destAccount = decodedData.numero_cuenta
+//                                amount = decodedData.monto.toString()
+//                                description = decodedData.concepto
+//                            } else {
+//                                Toast.makeText(context, "El código QR ha expirado (más de 10 min)", Toast.LENGTH_LONG).show()
+//                            }
                         } catch (e: Exception) {
                             Toast.makeText(context, "Error al procesar la fecha del QR", Toast.LENGTH_SHORT).show()
                         }
@@ -1068,5 +1131,91 @@ fun BranchesScreen() {
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
+    }
+}
+
+@Composable
+fun SettingsScreen(viewModel: MainViewModel) {
+    val context = LocalContext.current
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppColors.White)
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Text(
+            "Configuración",
+            style = MaterialTheme.typography.headlineMedium,
+            color = AppColors.Red,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Theme Option
+        SettingsItem(
+            icon = Icons.Default.Brightness6,
+            title = "Tema",
+            subtitle = "Claro / Oscuro (Próximamente)",
+            onClick = { }
+        )
+
+        // Language Option
+        SettingsItem(
+            icon = Icons.Default.Language,
+            title = "Idioma",
+            subtitle = "Español (Próximamente)",
+            onClick = { }
+        )
+
+        // Delete Account
+        SettingsItem(
+            icon = Icons.Default.DeleteForever,
+            title = "Borrar Cuenta",
+            subtitle = "Eliminar tus datos permanentemente",
+            iconColor = AppColors.Red,
+            onClick = {
+                Toast.makeText(context, "Funcionalidad próximamente", Toast.LENGTH_SHORT).show()
+            }
+        )
+
+        Divider(modifier = Modifier.padding(vertical = 16.dp))
+
+        // Terms and Conditions
+        SettingsItem(
+            icon = Icons.Default.Description,
+            title = "Términos y Condiciones",
+            subtitle = "Consulta nuestra política legal",
+            onClick = {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"))
+                context.startActivity(intent)
+            }
+        )
+    }
+}
+
+@Composable
+fun SettingsItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    iconColor: Color = AppColors.Black,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(28.dp))
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, fontWeight = FontWeight.Bold, color = AppColors.Black)
+            Text(subtitle, fontSize = 12.sp, color = AppColors.Gray)
+        }
+        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = AppColors.Gray, modifier = Modifier.size(16.dp))
     }
 }

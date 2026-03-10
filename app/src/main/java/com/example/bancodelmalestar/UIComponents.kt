@@ -1,6 +1,7 @@
 package com.example.bancodelmalestar
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -50,7 +51,7 @@ fun appTextFieldColors(): TextFieldColors {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppHeader() {
+fun AppHeader(onLogout: () -> Unit) {
     TopAppBar(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -69,6 +70,15 @@ fun AppHeader() {
                 )
             }
         },
+        actions = {
+            IconButton(onClick = onLogout) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                    contentDescription = "Cerrar Sesión",
+                    tint = AppColors.Red
+                )
+            }
+        },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = AppColors.HeaderBg
         )
@@ -78,8 +88,7 @@ fun AppHeader() {
 @Composable
 fun BottomNavigationBar(
     currentRoute: String,
-    onNavigate: (String) -> Unit,
-    onLogout: () -> Unit
+    onNavigate: (String) -> Unit
 ) {
     NavigationBar(
         containerColor = AppColors.White,
@@ -91,7 +100,7 @@ fun BottomNavigationBar(
                 Triple("transfers", Icons.AutoMirrored.Filled.Send, "Transf."),
                 Triple("services", Icons.Default.Receipt, "Servicios"),
                 Triple("profile", Icons.Default.Person, "Perfil"),
-                Triple("branches", Icons.Default.LocationOn, "Sucurs.")
+                Triple("settings", Icons.Default.Settings, "Config.")
             )
         }
 
@@ -109,16 +118,56 @@ fun BottomNavigationBar(
                 )
             )
         }
-        
-        NavigationBarItem(
-            icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Salir") },
-            label = { Text("Salir", fontSize = 10.sp) },
-            selected = false,
-            onClick = onLogout,
-            colors = NavigationBarItemDefaults.colors(
-                unselectedIconColor = AppColors.Gray
+    }
+}
+
+@Composable
+fun PhysicalCard(number: String, isCredit: Boolean) {
+    val bgColor = if (isCredit) AppColors.Red else AppColors.Green
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp)
+            .padding(bottom = 16.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = bgColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // White line above middle
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(35.dp)
+                    .padding(top = 25.dp)
+                    .background(Color.White.copy(alpha = 0.8f))
             )
-        )
+
+            // Number bottom left
+            Text(
+                text = number.chunked(4).joinToString(" "),
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(16.dp),
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 2.sp
+            )
+
+            // Logo bottom right
+            Image(
+                painter = painterResource(id = R.drawable.logo_banco),
+                contentDescription = null,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+                    .size(45.dp)
+                    .clip(CircleShape)
+                    .background(Color.White),
+                contentScale = ContentScale.Fit
+            )
+        }
     }
 }
 
@@ -142,6 +191,8 @@ fun CardAccount(
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            PhysicalCard(number = number, isCredit = isCredit)
+            
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -156,11 +207,6 @@ fun CardAccount(
                     Icon(Icons.Default.Settings, contentDescription = "Configurar Límite", tint = AppColors.Gray)
                 }
             }
-            Text(
-                "No. $number",
-                style = MaterialTheme.typography.bodySmall,
-                color = AppColors.Gray
-            )
             Spacer(modifier = Modifier.height(8.dp))
             
             val amountText = remember(amount) { String.format(Locale.US, "$%.2f", amount) }
