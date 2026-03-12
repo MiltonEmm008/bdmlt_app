@@ -27,7 +27,11 @@ import com.example.bancodelmalestar.ui.viewmodel.MainViewModel
 import com.example.bancodelmalestar.util.getAppStrings
 
 @Composable
-fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
+fun LoginScreen(
+    viewModel: MainViewModel,
+    onLoginSuccess: () -> Unit,
+    onForgotPassword: () -> Unit
+) {
     val s = getAppStrings(viewModel)
     var isRegister by remember { mutableStateOf(false) }
     
@@ -220,6 +224,12 @@ fun LoginScreen(viewModel: MainViewModel, onLoginSuccess: () -> Unit) {
                     if (isRegister) s.haveAccount else s.noAccount,
                     color = AppColors.Gray
                 )
+            }
+
+            if (!isRegister) {
+                TextButton(onClick = onForgotPassword) {
+                    Text(s.forgotPassword, color = AppColors.Gray, fontSize = 14.sp)
+                }
             }
         }
 

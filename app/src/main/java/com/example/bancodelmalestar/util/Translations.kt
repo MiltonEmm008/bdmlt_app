@@ -67,7 +67,16 @@ data class AppStrings(
     val transferType: String,
     val serviceType: String,
     val creditType: String,
-    val depositType: String
+    val depositType: String,
+    val aiAssistant: String,
+    val supportTitle: String,
+    val typeMessage: String,
+    val supportDescription: String,
+    val forgotPassword: String,
+    val resetPassword: String,
+    val enterEmail: String,
+    val send: String,
+    val emailSent: String
 )
 
 val SpanishStrings = AppStrings(
@@ -134,7 +143,16 @@ val SpanishStrings = AppStrings(
     transferType = "Transferencia",
     serviceType = "Servicio",
     creditType = "Crédito",
-    depositType = "Depósito"
+    depositType = "Depósito",
+    aiAssistant = "Asistente AI",
+    supportTitle = "Soporte BDMLT",
+    typeMessage = "Escribe un mensaje...",
+    supportDescription = "¿Necesitas ayuda con tus movimientos?",
+    forgotPassword = "¿Olvidaste tu contraseña?",
+    resetPassword = "Restablecer Contraseña",
+    enterEmail = "Ingresa tu correo electrónico para recibir instrucciones",
+    send = "Enviar",
+    emailSent = "Si el correo está registrado, recibirás instrucciones pronto"
 )
 
 val EnglishStrings = AppStrings(
@@ -201,7 +219,16 @@ val EnglishStrings = AppStrings(
     transferType = "Transfer",
     serviceType = "Service",
     creditType = "Credit",
-    depositType = "Deposit"
+    depositType = "Deposit",
+    aiAssistant = "AI Assistant",
+    supportTitle = "BDMLT Support",
+    typeMessage = "Type a message...",
+    supportDescription = "Need help with your transactions?",
+    forgotPassword = "Forgot your password?",
+    resetPassword = "Reset Password",
+    enterEmail = "Enter your email to receive instructions",
+    send = "Send",
+    emailSent = "If the email is registered, you will receive instructions soon"
 )
 
 val PortugueseStrings = AppStrings(
@@ -228,7 +255,7 @@ val PortugueseStrings = AppStrings(
     limit = "Limite",
     exportPdf = "Exportar PDF",
     exportCsv = "Exportar CSV",
-    recentMovements = "Movimentos Recentes",
+    recentMovements = "Movimientos Recentes",
     transfers = "Transferências",
     services = "Serviços",
     branches = "Agências",
@@ -254,7 +281,7 @@ val PortugueseStrings = AppStrings(
     memberSince = "Membro desde",
     system = "Sistema",
     light = "Claro",
-    dark = "Escuro",
+    dark = "Oscuro",
     spanish = "Espanhol",
     english = "Inglés",
     portuguese = "Português",
@@ -268,7 +295,16 @@ val PortugueseStrings = AppStrings(
     transferType = "Transferência",
     serviceType = "Serviço",
     creditType = "Crédito",
-    depositType = "Depósito"
+    depositType = "Depósito",
+    aiAssistant = "Assistente AI",
+    supportTitle = "Suporte BDMLT",
+    typeMessage = "Digite uma mensagem...",
+    supportDescription = "Precisa de ajuda com suas transações?",
+    forgotPassword = "Esqueceu sua senha?",
+    resetPassword = "Redefinir Senha",
+    enterEmail = "Digite seu e-mail para receber instruções",
+    send = "Enviar",
+    emailSent = "Se o e-mail estiver registrado, você receberá instruções em breve"
 )
 
 @Composable
