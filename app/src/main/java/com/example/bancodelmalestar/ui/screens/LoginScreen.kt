@@ -47,6 +47,7 @@ fun LoginScreen(
     var codigoPostal by remember { mutableStateOf("") }
     
     var localError by remember { mutableStateOf<String?>(null) }
+    var successMessage by remember { mutableStateOf<String?>(null) }
     var showUrlDialog by remember { mutableStateOf(false) }
     var tempUrl by remember { mutableStateOf(viewModel.BASE_URL) }
 
@@ -178,10 +179,15 @@ fun LoginScreen(
                 Text(it, color = AppColors.Red, modifier = Modifier.padding(top = 8.dp))
             }
 
+            successMessage?.let {
+                Text(it, color = Color(0xFF4CAF50), modifier = Modifier.padding(top = 8.dp), fontWeight = FontWeight.Medium)
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = {
+                    successMessage = null
                     if (isRegister) {
                         if (password != confirmPassword) {
                             localError = "Contraseñas no coinciden"
@@ -196,9 +202,21 @@ fun LoginScreen(
                                 calleNumero.ifBlank { null },
                                 colonia.ifBlank { null },
                                 ciudad.ifBlank { null },
-                                codigoPostal.ifBlank { null },
-                                onLoginSuccess
-                            )
+                                codigoPostal.ifBlank { null }
+                            ) {
+                                // Al registrar con éxito, NO logeamos.
+                                // Limpiamos campos y mostramos mensaje de confirmación.
+                                isRegister = false
+                                nombre = ""
+                                password = ""
+                                confirmPassword = ""
+                                telefono = ""
+                                calleNumero = ""
+                                colonia = ""
+                                ciudad = ""
+                                codigoPostal = ""
+                                successMessage = "¡Registro exitoso! Por favor, revisa tu correo para activar tu cuenta."
+                            }
                         }
                     } else {
                         viewModel.login(email, password, onLoginSuccess)
@@ -218,6 +236,7 @@ fun LoginScreen(
             TextButton(onClick = { 
                 isRegister = !isRegister
                 localError = null
+                successMessage = null
                 confirmPassword = ""
             }) {
                 Text(

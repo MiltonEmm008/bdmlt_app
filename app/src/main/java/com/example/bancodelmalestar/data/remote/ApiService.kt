@@ -8,7 +8,7 @@ import retrofit2.http.*
 
 interface ApiService {
     @POST("auth/registro")
-    suspend fun register(@Body body: Map<String, String>): Response<AuthResponse>
+    suspend fun register(@Body body: Map<String, String>): Response<RegisterResponse>
 
     @POST("auth/login")
     suspend fun login(@Body body: Map<String, String>): Response<AuthResponse>

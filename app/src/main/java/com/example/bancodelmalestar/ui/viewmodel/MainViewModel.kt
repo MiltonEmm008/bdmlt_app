@@ -102,7 +102,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     fetchInitialData()
                     onSuccess()
                 } else {
-                    errorMessage = "Error al iniciar sesión"
+                    errorMessage = "Error al iniciar sesión. Asegúrate de haber verificado tu cuenta."
                 }
             } catch (e: Exception) {
                 errorMessage = "Error de red"
@@ -159,12 +159,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val response = apiService.register(body)
                 if (response.isSuccessful) {
-                    token = "Bearer ${response.body()?.accessToken}"
-                    prefs.edit().putString("token", token).apply()
-                    fetchInitialData()
+                    // En el nuevo flujo, el registro no devuelve token ni logea automáticamente
                     onSuccess()
                 } else {
-                    errorMessage = "Error en el registro"
+                    errorMessage = "Error en el registro. El correo podría ya estar en uso."
                 }
             } catch (e: Exception) {
                 errorMessage = "Error de red"
