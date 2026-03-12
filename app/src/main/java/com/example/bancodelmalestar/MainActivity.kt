@@ -21,10 +21,16 @@ import com.example.bancodelmalestar.ui.components.BottomNavigationBar
 import com.example.bancodelmalestar.ui.screens.*
 import com.example.bancodelmalestar.ui.theme.BancoDelMalestarTheme
 import com.example.bancodelmalestar.ui.viewmodel.MainViewModel
+import org.maplibre.android.MapLibre
+import org.maplibre.android.WellKnownTileServer
 
 class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
+        
+        // Inicializar MapLibre antes de setContent con el valor correcto del Enum
+        MapLibre.getInstance(this, null, WellKnownTileServer.MapLibre)
+        
         super.onCreate(savedInstanceState)
         setContent {
             val viewModel: MainViewModel = viewModel()

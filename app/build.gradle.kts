@@ -64,9 +64,6 @@ dependencies {
     
     // Navigation
     implementation(libs.androidx.navigation.compose)
-    
-    // OSMDroid
-    implementation(libs.osmdroid)
 
     // QR Generation & Scanning
     implementation(libs.zxing.core)
@@ -85,4 +82,8 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    implementation(libs.maplibre.android)
+    implementation(libs.maplibre.annotations)
+    implementation(libs.mapbox.gestures)
 }
