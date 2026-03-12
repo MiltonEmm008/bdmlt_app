@@ -7,6 +7,10 @@ data class AuthResponse(
     @SerializedName("token_type") val tokenType: String
 )
 
+data class RegisterResponse(
+    val mensaje: String
+)
+
 data class User(
     val id: Int,
     val nombre: String,

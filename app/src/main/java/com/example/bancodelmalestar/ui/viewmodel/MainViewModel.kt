@@ -3,6 +3,7 @@ package com.example.bancodelmalestar.ui.viewmodel
 import android.app.Application
 import android.content.Context
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
@@ -13,11 +14,13 @@ import com.example.bancodelmalestar.util.NotificationHelper
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.File
+import java.util.concurrent.TimeUnit
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = application.getSharedPreferences("prefs", Context.MODE_PRIVATE)
@@ -25,8 +28,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var BASE_URL by mutableStateOf(prefs.getString("base_url", "http://10.0.2.2:8000/api/") ?: "http://10.0.2.2:8000/api/")
         private set
 
+    private val okHttpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build()
+
     private var retrofit = Retrofit.Builder()
         .baseUrl(BASE_URL)
+        .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
@@ -46,6 +56,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var themeConfig by mutableStateOf(prefs.getString("theme", "system") ?: "system")
     var languageConfig by mutableStateOf(prefs.getString("lang", "es") ?: "es")
 
+    // Support AI State
+    var supportSessionId by mutableStateOf<String?>(null)
+    val supportMessages = mutableStateListOf<ChatMessage>()
+    var isSupportLoading by mutableStateOf(false)
+
     init {
         if (token != null) {
             fetchInitialData()
@@ -59,6 +74,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         prefs.edit().putString("base_url", url).apply()
         retrofit = Retrofit.Builder()
             .baseUrl(url)
+            .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
         apiService = retrofit.create(ApiService::class.java)
@@ -86,7 +102,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     fetchInitialData()
                     onSuccess()
                 } else {
-                    errorMessage = "Error al iniciar sesión"
+                    errorMessage = "Error al iniciar sesión. Asegúrate de haber verificado tu cuenta."
+                }
+            } catch (e: Exception) {
+                errorMessage = "Error de red"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    fun forgotPassword(email: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            isLoading = true
+            errorMessage = null
+            try {
+                val response = apiService.forgotPassword(mapOf("email" to email))
+                if (response.isSuccessful) {
+                    onSuccess()
+                } else {
+                    errorMessage = "Error al procesar solicitud"
                 }
             } catch (e: Exception) {
                 errorMessage = "Error de red"
@@ -124,12 +159,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val response = apiService.register(body)
                 if (response.isSuccessful) {
-                    token = "Bearer ${response.body()?.accessToken}"
-                    prefs.edit().putString("token", token).apply()
-                    fetchInitialData()
+                    // En el nuevo flujo, el registro no devuelve token ni logea automáticamente
                     onSuccess()
                 } else {
-                    errorMessage = "Error en el registro"
+                    errorMessage = "Error en el registro. El correo podría ya estar en uso."
                 }
             } catch (e: Exception) {
                 errorMessage = "Error de red"
@@ -352,5 +385,44 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (res.isSuccessful) myQrData = res.body()
             } catch (e: Exception) {}
         }
+    }
+
+    // Support AI Methods
+    fun sendSupportMessage(message: String) {
+        if (message.isBlank()) return
+        
+        supportMessages.add(ChatMessage(message, true))
+        viewModelScope.launch {
+            isSupportLoading = true
+            try {
+                val request = SupportChatRequest(sessionId = supportSessionId, message = message)
+                val response = apiService.sendSupportChat(request)
+                if (response.isSuccessful) {
+                    response.body()?.let {
+                        supportSessionId = it.sessionId
+                        supportMessages.add(ChatMessage(it.reply, false))
+                    }
+                } else {
+                    supportMessages.add(ChatMessage("Error al obtener respuesta del asistente.", false))
+                }
+            } catch (e: Exception) {
+                supportMessages.add(ChatMessage("Error de conexión con el soporte.", false))
+            } finally {
+                isSupportLoading = false
+            }
+        }
+    }
+
+    fun clearSupportChat() {
+        val sessionId = supportSessionId
+        if (sessionId != null) {
+            viewModelScope.launch {
+                try {
+                    apiService.deleteSupportChat(sessionId)
+                } catch (e: Exception) {}
+            }
+        }
+        supportSessionId = null
+        supportMessages.clear()
     }
 }

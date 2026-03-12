@@ -8,10 +8,13 @@ import retrofit2.http.*
 
 interface ApiService {
     @POST("auth/registro")
-    suspend fun register(@Body body: Map<String, String>): Response<AuthResponse>
+    suspend fun register(@Body body: Map<String, String>): Response<RegisterResponse>
 
     @POST("auth/login")
     suspend fun login(@Body body: Map<String, String>): Response<AuthResponse>
+
+    @POST("auth/forgot-password")
+    suspend fun forgotPassword(@Body body: Map<String, String>): Response<Map<String, String>>
 
     @GET("auth/me")
     suspend fun getMe(@Header("Authorization") token: String): Response<User>
@@ -77,4 +80,14 @@ interface ApiService {
 
     @GET("operaciones/servicios-disponibles")
     suspend fun getAvailableServices(): Response<List<ServiceAvailable>>
+
+    // Support AI endpoints
+    @GET("soporte/health")
+    suspend fun getSupportHealth(): Response<SupportHealthResponse>
+
+    @POST("soporte/chat")
+    suspend fun sendSupportChat(@Body body: SupportChatRequest): Response<SupportChatResponse>
+
+    @DELETE("soporte/chat/{session_id}")
+    suspend fun deleteSupportChat(@Path("session_id") sessionId: String): Response<Map<String, String>>
 }

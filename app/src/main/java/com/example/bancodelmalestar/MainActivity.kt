@@ -21,10 +21,16 @@ import com.example.bancodelmalestar.ui.components.BottomNavigationBar
 import com.example.bancodelmalestar.ui.screens.*
 import com.example.bancodelmalestar.ui.theme.BancoDelMalestarTheme
 import com.example.bancodelmalestar.ui.viewmodel.MainViewModel
+import org.maplibre.android.MapLibre
+import org.maplibre.android.WellKnownTileServer
 
 class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
+        
+        // Inicializar MapLibre antes de setContent con el valor correcto del Enum
+        MapLibre.getInstance(this, null, WellKnownTileServer.MapLibre)
+        
         super.onCreate(savedInstanceState)
         setContent {
             val viewModel: MainViewModel = viewModel()
@@ -35,7 +41,7 @@ class MainActivity : FragmentActivity() {
             BancoDelMalestarTheme(viewModel = viewModel) {
                 Scaffold(
                     topBar = { 
-                        if (currentRoute != "login") {
+                        if (currentRoute != "login" && currentRoute != "support" && currentRoute != "forgot_password") {
                             AppHeader(onLogout = {
                                 viewModel.logout()
                                 navController.navigate("login") {
@@ -45,7 +51,7 @@ class MainActivity : FragmentActivity() {
                         } 
                     },
                     bottomBar = {
-                        if (currentRoute != "login") {
+                        if (currentRoute != "login" && currentRoute != "support" && currentRoute != "forgot_password") {
                             BottomNavigationBar(
                                 currentRoute = currentRoute,
                                 onNavigate = { navController.navigate(it) },
@@ -57,19 +63,32 @@ class MainActivity : FragmentActivity() {
                     NavHost(
                         navController = navController,
                         startDestination = "login",
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = if (currentRoute == "support" || currentRoute == "login" || currentRoute == "forgot_password") Modifier else Modifier.padding(innerPadding)
                     ) {
                         composable("login") {
-                            LoginScreen(viewModel) {
-                                navController.navigate("home") {
-                                    popUpTo("login") { inclusive = true }
+                            LoginScreen(
+                                viewModel = viewModel,
+                                onLoginSuccess = {
+                                    navController.navigate("home") {
+                                        popUpTo("login") { inclusive = true }
+                                    }
+                                },
+                                onForgotPassword = {
+                                    navController.navigate("forgot_password")
                                 }
+                            )
+                        }
+                        composable("forgot_password") {
+                            ForgotPasswordScreen(viewModel) {
+                                navController.popBackStack()
                             }
                         }
                         composable("home") {
-                            HomeScreen(viewModel) {
-                                navController.navigate("pay_credit")
-                            }
+                            HomeScreen(
+                                viewModel = viewModel,
+                                onPayCreditClick = { navController.navigate("pay_credit") },
+                                onSupportClick = { navController.navigate("support") }
+                            )
                         }
                         composable("transfers") {
                             TransfersScreen(viewModel) { onAuth ->
@@ -102,6 +121,11 @@ class MainActivity : FragmentActivity() {
                             }) {
                                 navController.popBackStack()
                             }
+                        }
+                        composable("support") {
+                            SupportScreen(viewModel, onBack = {
+                                navController.popBackStack()
+                            })
                         }
                     }
                 }

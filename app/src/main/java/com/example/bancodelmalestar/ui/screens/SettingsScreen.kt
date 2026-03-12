@@ -81,7 +81,7 @@ fun SettingsScreen(viewModel: MainViewModel, onNavigateToProfile: () -> Unit) {
             title = s.terms,
             subtitle = "",
             onClick = {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"))
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://miltonemm008.github.io/bdmlt_pagina/"))
                 context.startActivity(intent)
             }
         )
