@@ -3,6 +3,9 @@ package com.example.bancodelmalestar
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
+import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -134,6 +137,15 @@ class MainActivity : FragmentActivity() {
     }
 
     private fun showBiometricPrompt(onSuccess: () -> Unit) {
+        val biometricManager = BiometricManager.from(this)
+
+        val canAuthenticate = biometricManager.canAuthenticate(BIOMETRIC_STRONG or DEVICE_CREDENTIAL)
+        
+        if (canAuthenticate != BiometricManager.BIOMETRIC_SUCCESS) {
+            onSuccess()
+            return
+        }
+
         val executor = ContextCompat.getMainExecutor(this)
         val biometricPrompt = BiometricPrompt(this, executor,
             object : BiometricPrompt.AuthenticationCallback() {
@@ -144,7 +156,8 @@ class MainActivity : FragmentActivity() {
 
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                     super.onAuthenticationError(errorCode, errString)
-                    Toast.makeText(applicationContext, "Error de autenticación: $errString", Toast.LENGTH_SHORT).show()
+                    // En caso de error (cancelado por usuario, etc), no llamamos a onSuccess
+                    Toast.makeText(applicationContext, "Autenticación requerida para continuar", Toast.LENGTH_SHORT).show()
                 }
 
                 override fun onAuthenticationFailed() {
@@ -156,7 +169,7 @@ class MainActivity : FragmentActivity() {
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle("Autenticación Requerida")
             .setSubtitle("Confirma tu identidad para realizar el movimiento")
-            .setNegativeButtonText("Cancelar")
+            .setAllowedAuthenticators(BIOMETRIC_STRONG or DEVICE_CREDENTIAL)
             .build()
 
         biometricPrompt.authenticate(promptInfo)

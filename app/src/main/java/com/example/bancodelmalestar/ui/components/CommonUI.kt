@@ -318,7 +318,11 @@ fun MovementItem(movement: Movement, viewModel: MainViewModel) {
 
 @Composable
 fun UserProfileImage(photoUrl: String?, baseUrl: String, size: Int = 100) {
-    val fullUrl = if (photoUrl != null) "$baseUrl$photoUrl" else null
+    val fullUrl = when {
+        photoUrl == null -> null
+        photoUrl.startsWith("http") -> photoUrl // Si ya es una URL absoluta (Supabase)
+        else -> "$baseUrl$photoUrl" // Si es una ruta relativa de la API local
+    }
     
     AsyncImage(
         model = ImageRequest.Builder(LocalContext.current)
